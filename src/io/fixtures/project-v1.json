@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "foreground": { "r": 1, "g": 2, "b": 3, "a": 255 },
+  "background": { "r": 4, "g": 5, "b": 6, "a": 255 },
+  "sprite": {
+    "id": "sprite-compat",
+    "name": "Compat",
+    "width": 2,
+    "height": 2,
+    "colorMode": "rgba",
+    "palette": [{ "r": 255, "g": 0, "b": 128, "a": 255 }],
+    "frames": [
+      { "id": "frame-1", "durationMs": 120 },
+      { "id": "frame-2", "durationMs": 80 }
+    ],
+    "layers": [
+      {
+        "id": "layer-1",
+        "name": "Camada 1",
+        "kind": "image",
+        "opacity": 255,
+        "blendMode": "normal",
+        "visible": true,
+        "locked": false,
+        "parentId": null
+      }
+    ],
+    "cels": [
+      {
+        "layerId": "layer-1",
+        "frameId": "frame-1",
+        "x": 0,
+        "y": 0,
+        "opacity": 255,
+        "image": { "width": 2, "height": 2, "pixels": "AAAAAAoUHv8AAAAAAAAAAA==" }
+      },
+      {
+        "layerId": "layer-1",
+        "frameId": "frame-2",
+        "x": 0,
+        "y": 0,
+        "opacity": 255,
+        "image": { "width": 2, "height": 2, "pixels": "AAAAAAAAAAAAAAAAAAAAAA==" }
+      }
+    ],
+    "tags": [],
+    "slices": [],
+    "tilesets": [],
+    "grid": { "width": 8, "height": 12, "x": 1, "y": 2 }
+  }
+}

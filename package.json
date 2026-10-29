@@ -1,0 +1,30 @@
+{
+  "name": "pixeluz",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "smoke": "node scripts/release-smoke.mjs",
+    "lint": "eslint src",
+    "icons": "node scripts/generate-icons.mjs"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.3.1",
+    "bootstrap": "^5.3.8",
+    "idb": "^8.0.3"
+  },
+  "devDependencies": {
+    "@types/bootstrap": "^5.2.11",
+    "eslint": "^9.39.1",
+    "playwright-core": "^1.64.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.2",
+    "vite": "^7.1.12",
+    "vite-plugin-pwa": "^1.1.0",
+    "vitest": "^3.2.4"
+  }
+}
