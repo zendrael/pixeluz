@@ -71,9 +71,9 @@ npm run build
 npm run preview
 ```
 
-`npm run build` gera a pasta `dist`. Publique essa pasta em HTTPS, na raiz do host: o manifesto abre `/`. `npm run preview` serve essa pasta neste computador.
+`npm run build` gera a pasta `dist` para a raiz do host. `npm run preview` serve essa pasta neste computador.
 
-Se o host só entregar o app num subcaminho, o `base` do Vite e os campos `start_url` e `scope` do manifesto usam esse caminho juntos.
+O site de produção é [zendrael.github.io/pixeluz](https://zendrael.github.io/pixeluz/). O workflow de Pages gera o build com `base`, `start_url` e `scope` em `/pixeluz/`.
 
 `npm run smoke`, depois do build, percorre no Chrome criar, pintar, desfazer, recarregar, PNG, a viewport de celular e a página offline.
 

@@ -9,7 +9,7 @@ describe("arquivos da 1.0", () => {
     const license = readFileSync(new URL("LICENSE", root), "utf8");
     const version = JSON.parse(readFileSync(new URL("package.json", root), "utf8")) as { version: string };
     expect(license).toContain("Permission is hereby granted");
-    expect(license).toContain("Pixeluz contributors");
+    expect(license).toContain("Zendrael Ziul");
     expect(version.version).toBe("1.0.0");
   });
 
