@@ -10,6 +10,7 @@ import { downloadBlob, downloadDataUrl, filePickerAvailable, OPEN_FILE_TYPES, PA
 import { readAse, writeAse, isAseFile } from "../io/ase";
 import { isImageFile, readImageSprite } from "../io/image-file";
 import { writeGif } from "../io/gif";
+import { encodeAnimation } from "../io/video-encode";
 import { encodePng } from "../io/png";
 import { atlasJson, buildSpriteSheet } from "../io/sheet";
 import { zipStored } from "../io/zip";
@@ -189,6 +190,11 @@ export class Controller {
       event.preventDefault();
       this.createSprite();
     }, { signal });
+    this.required<HTMLFormElement>("#form-video").addEventListener("submit", (event) => {
+      event.preventDefault();
+      Modal.getInstance(this.required("#modal-video"))?.hide();
+      void this.exportVideo();
+    }, { signal });
     this.required<HTMLFormElement>("#form-canvas").addEventListener("submit", (event) => {
       event.preventDefault();
       this.resizeCanvasFromSettings();
@@ -300,6 +306,9 @@ export class Controller {
         break;
       case "export-gif":
         this.exportGif();
+        break;
+      case "export-video":
+        Modal.getOrCreateInstance(this.required("#modal-video")).show();
         break;
       case "export-sequence":
         this.exportSequence();
@@ -643,6 +652,29 @@ export class Controller {
     const name = safeFilename(this.session.doc.name);
     const bytes = writeGif(this.session.exportAnimation());
     void this.saveBytes(bytes, `${name}.gif`, "image/gif", [{ description: "GIF", accept: { "image/gif": [".gif"] } }]);
+  }
+
+  private async exportVideo(): Promise<void> {
+    const scale = Number(this.required<HTMLSelectElement>("#video-scale").value);
+    if (scale !== 1 && scale !== 2 && scale !== 4 && scale !== 8) return;
+    const name = safeFilename(this.session.doc.name);
+    try {
+      const encoded = await encodeAnimation(this.session.exportAnimation(), {
+        scale,
+        background: this.session.background,
+      });
+      if (!encoded) {
+        this.flash(text.videoCodec, "danger");
+        return;
+      }
+      const label = encoded.extension === ".mp4" ? "MP4" : "WebM";
+      void this.saveBytes(encoded.bytes, `${name}${encoded.extension}`, encoded.mime, [{
+        description: label,
+        accept: { [encoded.mime]: [encoded.extension] },
+      }]);
+    } catch (error) {
+      this.flash(error instanceof Error ? error.message : text.videoCodec, "danger");
+    }
   }
 
   private exportSequence(): void {

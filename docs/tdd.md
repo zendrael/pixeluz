@@ -10,7 +10,7 @@ Vite, TypeScript strict, Bootstrap 5, Vitest. Sem segundo modelo de sprite.
 - `src/commands/` `Command` e `History`
 - `src/render/` composite, raster e viewport
 - `src/tools/` uma ferramenta por classe
-- `src/io/` projeto, PNG, GIF, sprite sheet e `.aseprite`
+- `src/io/` projeto, PNG, GIF, sprite sheet, vídeo e `.aseprite`
 - `src/storage/` IndexedDB
 - `src/input/` atalhos
 - `src/ui/` shell Bootstrap e textos
@@ -37,7 +37,7 @@ Teste na interface pública da costura. Um teste novo numa costura que não est�
 | Raster | funções de `src/render/raster.ts` | traço gravado no buffer | evento de ponteiro |
 | Composite | `compositeFrame` | ordem das camadas, referência e tile | PNG exportado |
 | Projeto | `serializeProject` / `deserializeProject` | ida e volta do sprite | IndexedDB |
-| Arquivo | leitores e escritores em `src/io/` | bytes de PNG, GIF, JPEG, ASE e paleta | diálogo do sistema |
+| Arquivo | leitores e escritores em `src/io/` | bytes de PNG, GIF, JPEG, ASE, paleta e a preparação do vídeo (escala, fundo opaco, tamanho par) | diálogo do sistema e o codec |
 | Paleta | `parsePaletteFile`, `paletteToHex`, `lospecSlug` | `.hex`, `.gpl`, JSON do Lospec | rede |
 | Zoom | `zoomFromPinch`, `consumeWheelPinch` | um nível por gesto e a folga no limite | evento `wheel` do browser |
 | Painel | `clampPanelLayout`, `timelineLimit`, `panelSnapTarget`, `optionGroupsFor` | teto, recolhimento e opções da ferramenta ativa | arraste real |

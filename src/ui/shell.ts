@@ -219,6 +219,7 @@ export function mountShell(root: HTMLElement): void {
           <ul class="dropdown-menu dropdown-menu-end">
             <li><button type="button" class="dropdown-item" data-action="export">${text.exportPng}</button></li>
             <li><button type="button" class="dropdown-item" data-action="export-gif">${text.exportGif}</button></li>
+            <li><button type="button" class="dropdown-item" data-action="export-video">${text.exportVideo}</button></li>
             <li><button type="button" class="dropdown-item" data-action="export-sequence">${text.exportSequence}</button></li>
             <li><button type="button" class="dropdown-item" data-action="export-sheet">${text.exportSheet}</button></li>
             <li><button type="button" class="dropdown-item" data-action="export-ase">${text.exportAse}</button></li>
@@ -300,6 +301,29 @@ export function mountShell(root: HTMLElement): void {
           <div class="modal-footer">
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${text.cancel}</button>
             <button type="submit" class="btn btn-primary">${text.create}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="modal fade" id="modal-video" tabindex="-1" aria-labelledby="modal-video-label" aria-hidden="true">
+      <div class="modal-dialog">
+        <form class="modal-content" id="form-video">
+          <div class="modal-header">
+            <h2 class="modal-title h5" id="modal-video-label">${text.videoTitle}</h2>
+            ${closeButton("modal")}
+          </div>
+          <div class="modal-body">
+            <label class="form-label" for="video-scale">${text.videoScale}</label>
+            <select class="form-select" id="video-scale">
+              <option value="1">1×</option>
+              <option value="2">2×</option>
+              <option value="4" selected>4×</option>
+              <option value="8">8×</option>
+            </select>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${text.cancel}</button>
+            <button type="submit" class="btn btn-primary">${text.exportMenu}</button>
           </div>
         </form>
       </div>

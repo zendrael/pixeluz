@@ -26,7 +26,7 @@ Mutações do documento passam por `Command` (`execute` / `undo`) e por `History
 - `src/commands/` comandos e histórico
 - `src/render/` composite, raster e viewport
 - `src/tools/` uma ferramenta por classe; tinta e traço separados do shell
-- `src/io/` JSON do projeto, PNG, GIF, sequência PNG, sprite sheet, atlas e `.ase`/`.aseprite`
+- `src/io/` JSON do projeto, PNG, GIF, sequência PNG, sprite sheet, atlas, vídeo e `.ase`/`.aseprite`
 - `src/storage/` IndexedDB
 - `src/input/` atalhos
 - `src/ui/` shell Bootstrap e textos
