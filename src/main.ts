@@ -7,6 +7,7 @@ import { EditorSession } from "./app/session";
 import type { LoadedProject } from "./io/project-json";
 import { loadRecovery } from "./storage/db";
 import { applyLocale, readLocale, type Locale } from "./ui/i18n";
+import { watchForUpdate } from "./pwa/register";
 import { mountShell } from "./ui/shell";
 
 const root = document.querySelector<HTMLElement>("#app");
@@ -42,6 +43,7 @@ function mount(boot?: ControllerBoot): void {
 }
 
 applyLocale(readLocale());
+watchForUpdate(() => current?.persistForUpdate() ?? Promise.resolve());
 void loadRecovery()
   .then((recovered) => {
     if (!recovered) {

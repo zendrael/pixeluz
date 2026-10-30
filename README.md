@@ -1,6 +1,6 @@
 # Pixeluz
 
-Editor de pixel art e animação no navegador. A arte no canvas continua pixelada; a interface é Bootstrap 5, responsiva, em português, e funciona no desktop e no celular. O app é um PWA: o shell fica disponível offline depois da instalação.
+Editor de pixel art e animação no navegador. A arte no canvas continua pixelada; a interface é Bootstrap 5, responsiva, em português, e funciona no desktop e no celular. O app é um PWA: o shell fica disponível offline depois da instalação. Em toda visita, no navegador ou instalado, o app procura uma versão nova. Se houver, avisa que a página vai recarregar e atualiza.
 
 A implementação é original e está sob a licença MIT. O comportamento segue a documentação pública do [Aseprite](https://www.aseprite.org/docs/) e a descrição do [LibreSprite](https://libresprite.github.io/). O código desses projetos não entra aqui. O [REA](https://github.com/morluto/rea) não é usado: a documentação pública já cobre as funções, e decompilar o Aseprite proprietário copiaria código protegido.
 

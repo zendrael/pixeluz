@@ -942,6 +942,10 @@ export class Controller {
     };
   }
 
+  persistForUpdate(): Promise<void> {
+    return this.autosave();
+  }
+
   private async autosave(): Promise<void> {
     const dirty = this.sessions.filter((session) => session.dirty);
     if (dirty.length === 0) return;

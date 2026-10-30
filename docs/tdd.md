@@ -14,6 +14,7 @@ Vite, TypeScript strict, Bootstrap 5, Vitest. Sem segundo modelo de sprite.
 - `src/storage/` IndexedDB
 - `src/input/` atalhos
 - `src/ui/` shell Bootstrap e textos
+- `src/pwa/` aviso e recarregamento de versão
 - `src/app/` `EditorSession` e `Controller`
 
 O que ficou de fora está em `ROADMAP.md`.
@@ -44,6 +45,7 @@ Teste na interface pública da costura. Um teste novo numa costura que não est�
 | Atalho | `matchShortcut` | acorde para ação, inclusive copiar e colar | foco do input |
 | Idioma | `preferredLocale` | escolha salva, português e espanhol do navegador, inglês nos demais | `navigator` real |
 | Sessão | `EditorSession` | grade, tile, texto, RotSprite, copiar e colar a seleção, undo | layout Bootstrap |
+| Atualização | `beginUpdate` | aviso, gravação e um único recarregamento | service worker e rede |
 | Interface | o app no browser | o fluxo que o usuário vê | lógica já coberta acima |
 
 `npm test` roda as costuras automatizadas. Mudança de UI, layout, rota ou dado renderizado também se confirma no browser, no fluxo afetado.

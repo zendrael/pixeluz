@@ -18,7 +18,7 @@ A interface é Bootstrap 5, responsiva, com tema escuro. O idioma padrão é ing
 
 Um sprite tem `frames` × `layers`. A interseção é um `cel` com imagem, offset e opacidade. Layers vão de baixo para cima: `layers[0]` é desenhado primeiro. Modos de cor: `rgba`, `indexed` e `grayscale`. A conversão quantiza. No modo indexado, trocar uma cor da paleta repinta os pixels dessa cor. O cel de tilemap guarda índices de tile; a camada de referência continua só no editor. O canvas pode ser redimensionado, recortado, autocortado e girado com RotSprite. Slices e texto bitmap fazem parte do mesmo documento.
 
-Mutações do documento passam por `Command` (`execute` / `undo`) e por `History`. A UI não altera pixels, frames, layers ou paleta direto. O tamanho da grade fica no sprite. Cor de frente, fundo, zoom, pan, visibilidade da grade, pincel, tinta, simetria, ladrilho, onion skin, atalhos, idioma e a seleção são estado de vista. O trabalho sujo é gravado no IndexedDB. A paleta inicial é Sweetie 16 (GrafxKid). DB32 e Endesga 32 entram como paletas com atribuição. No desktop, o painel lateral e a linha do tempo podem ser redimensionados ou minimizados. A prévia do quadro fica acima das cores. A seleção não entra no PNG nem no JSON. A camada de referência entra no composite do editor e fica de fora do PNG. Cada aba é uma `EditorSession`.
+Mutações do documento passam por `Command` (`execute` / `undo`) e por `History`. A UI não altera pixels, frames, layers ou paleta direto. O tamanho da grade fica no sprite. Cor de frente, fundo, zoom, pan, visibilidade da grade, pincel, tinta, simetria, ladrilho, onion skin, atalhos, idioma e a seleção são estado de vista. O trabalho sujo é gravado no IndexedDB. Em toda visita, no navegador ou instalado, o app procura uma versão nova, avisa e recarrega; antes disso grava o desenho. A paleta inicial é Sweetie 16 (GrafxKid). DB32 e Endesga 32 entram como paletas com atribuição. No desktop, o painel lateral e a linha do tempo podem ser redimensionados ou minimizados. A prévia do quadro fica acima das cores. A seleção não entra no PNG nem no JSON. A camada de referência entra no composite do editor e fica de fora do PNG. Cada aba é uma `EditorSession`.
 
 ## Pastas
 
@@ -30,6 +30,7 @@ Mutações do documento passam por `Command` (`execute` / `undo`) e por `History
 - `src/storage/` IndexedDB
 - `src/input/` atalhos
 - `src/ui/` shell Bootstrap e textos
+- `src/pwa/` aviso e recarregamento quando há versão nova
 - `src/app/` sessão e controlador
 
 O inventário que ainda falta está em [ROADMAP.md](../../../ROADMAP.md). Estender o domínio existente; não criar um segundo modelo de sprite.
