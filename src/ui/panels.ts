@@ -233,7 +233,9 @@ function bindingLabel(id: BindingId): string {
   if (id === "new") return text.newSprite;
   if (id === "play") return text.play;
   if (id === "prev-frame") return text.prevFrame;
-  return text.nextFrame;
+  if (id === "next-frame") return text.nextFrame;
+  if (id === "copy") return text.copySelection;
+  return text.pasteSelection;
 }
 
 export function setDuration(root: ParentNode, milliseconds: number): void {

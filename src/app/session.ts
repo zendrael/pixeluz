@@ -77,6 +77,7 @@ export class EditorSession implements EditorApi {
   bayer: BayerSize = 4;
   selectMode: SelectMode = "replace";
   selection: Uint8Array | null = null;
+  clipboard: { image: ImageBuffer; mask: Uint8Array; x: number; y: number } | null = null;
   onionBefore = 0;
   onionAfter = 0;
   tileDrawMode: TileDrawMode = "tiles";
@@ -745,6 +746,57 @@ export class EditorSession implements EditorApi {
     return findCel(this.doc, this.activeLayerId, this.activeFrameId);
   }
 
+  copySelection(): boolean {
+    const cel = this.activeCel();
+    const mask = this.selection;
+    if (!cel || !mask || mask.length !== cel.image.width * cel.image.height) return false;
+    const bounds = maskBounds(mask, cel.image.width, cel.image.height);
+    if (!bounds) return false;
+    const width = bounds.maxX - bounds.minX + 1;
+    const height = bounds.maxY - bounds.minY + 1;
+    const image = createImage(width, height);
+    const clip = new Uint8Array(width * height);
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        if (mask[(bounds.minY + y) * cel.image.width + bounds.minX + x] !== 1) continue;
+        clip[y * width + x] = 1;
+        const color = getPixel(cel.image, bounds.minX + x, bounds.minY + y);
+        if (color) setPixel(image, x, y, color);
+      }
+    }
+    if (!clip.some((bit) => bit === 1)) return false;
+    this.clipboard = { image, mask: clip, x: bounds.minX, y: bounds.minY };
+    this.emit("chrome");
+    return true;
+  }
+
+  pasteClipboard(): boolean {
+    const clip = this.clipboard;
+    const layer = findLayer(this.doc, this.activeLayerId);
+    if (!clip || !layer || (layer.kind !== "image" && layer.kind !== "reference") || !layer.visible || layer.locked) return false;
+    const cel = findCel(this.doc, this.activeLayerId, this.activeFrameId);
+    if (!cel) return false;
+    const snapshot = cel.image.data.slice();
+    const next = new Uint8Array(cel.image.width * cel.image.height);
+    for (let y = 0; y < clip.image.height; y += 1) {
+      for (let x = 0; x < clip.image.width; x += 1) {
+        if (clip.mask[y * clip.image.width + x] !== 1) continue;
+        const px = clip.x + x;
+        const py = clip.y + y;
+        if (px < 0 || py < 0 || px >= cel.image.width || py >= cel.image.height) continue;
+        const color = getPixel(clip.image, x, y);
+        if (!color) continue;
+        setPixel(cel.image, px, py, color);
+        next[py * cel.image.width + px] = 1;
+      }
+    }
+    if (!next.some((bit) => bit === 1)) return false;
+    const changes = diffSnapshot(cel.image, snapshot);
+    if (changes.length > 0) this.commitPixels(this.activeLayerId, this.activeFrameId, changes, true);
+    this.setSelection(next);
+    return true;
+  }
+
   transformSelection(op: SelectionOp, dx = 0, dy = 0): void {
     const layer = findLayer(this.doc, this.activeLayerId);
     const mask = this.selection;
@@ -889,6 +941,7 @@ export class EditorSession implements EditorApi {
     this.activeLayerId = doc.layers.find((layer) => layer.kind === "image")?.id ?? doc.layers[0]?.id ?? "";
     this.preview = null;
     this.selection = null;
+    this.clipboard = null;
     this.cache = null;
     this.edits = 0;
     this.exportedEdit = -1;
@@ -968,6 +1021,7 @@ export class EditorSession implements EditorApi {
     if (width === this.doc.width && height === this.doc.height && dx === 0 && dy === 0) return;
     this.run(new ResizeCanvasCommand(width, height, dx, dy));
     this.selection = null;
+    this.clipboard = null;
     this.invalidateCanvas();
   }
 

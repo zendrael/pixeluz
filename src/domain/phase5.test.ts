@@ -13,6 +13,7 @@ import { makeTileset, paintTilePoints } from "./tiles";
 const red = { r: 255, g: 0, b: 0, a: 255 };
 const green = { r: 0, g: 255, b: 0, a: 255 };
 const opaque = { r: 0, g: 0, b: 0, a: 255 };
+const clear = { r: 0, g: 0, b: 0, a: 0 };
 
 describe("fase 5", () => {
   it("muda o tamanho da grade e desfaz", () => {
@@ -134,5 +135,27 @@ describe("fase 5", () => {
     expect(tileLayer?.tilesetId).toBe(loaded.sprite.tilesets[0]?.id);
     const tileCel = loaded.sprite.cels.find((item) => item.layerId === tileLayer?.id);
     expect(tileCel?.tiles?.length).toBeGreaterThan(0);
+  });
+
+  it("copia a seleção sem pintar e cola na camada ativa", () => {
+    const session = new EditorSession(createSprite(4, 4));
+    const source = findCel(session.doc, session.activeLayerId, session.activeFrameId);
+    if (!source) throw new Error("cel ausente");
+    setPixel(source.image, 1, 1, red);
+    const mask = new Uint8Array(16);
+    mask[1 * 4 + 1] = 1;
+    session.setSelection(mask);
+    expect(session.copySelection()).toBe(true);
+    expect(getPixel(source.image, 1, 1)).toEqual(red);
+    expect(getPixel(source.image, 2, 2)).toEqual(clear);
+
+    expect(session.addLayer()).toBe(true);
+    const targetId = session.activeLayerId;
+    expect(session.pasteClipboard()).toBe(true);
+    const target = findCel(session.doc, targetId, session.activeFrameId);
+    expect(target && getPixel(target.image, 1, 1)).toEqual(red);
+    expect(getPixel(source.image, 1, 1)).toEqual(red);
+    session.undo();
+    expect(target && getPixel(target.image, 1, 1)).toEqual(clear);
   });
 });

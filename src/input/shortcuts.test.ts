@@ -12,6 +12,8 @@ describe("atalhos", () => {
     expect(shortcutForChord("b", bindings)).toEqual({ type: "tool", tool: "pencil" });
     expect(shortcutForChord("shift+u", bindings)).toEqual({ type: "tool", tool: "ellipse" });
     expect(shortcutForChord("mod+z", bindings)).toEqual({ type: "undo" });
+    expect(shortcutForChord("mod+c", bindings)).toEqual({ type: "copy" });
+    expect(shortcutForChord("mod+v", bindings)).toEqual({ type: "paste" });
   });
 
   it("recusa um atalho que já pertence a outra ação", () => {

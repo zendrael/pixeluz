@@ -481,7 +481,10 @@ export class Controller {
         this.session.transformSelection("scale-down");
         break;
       case "copy-selection":
-        this.session.transformSelection("copy");
+        this.session.copySelection();
+        break;
+      case "paste-selection":
+        this.session.pasteClipboard();
         break;
       case "clear-selection":
         this.session.clearSelection();
@@ -574,6 +577,12 @@ export class Controller {
         break;
       case "new":
         Modal.getOrCreateInstance(this.required("#modal-new")).show();
+        break;
+      case "copy":
+        this.session.copySelection();
+        break;
+      case "paste":
+        this.session.pasteClipboard();
         break;
       case "space":
         this.viewport.setSpaceHeld(action.down);

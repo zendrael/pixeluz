@@ -9,7 +9,9 @@ export type BindingId =
   | "new"
   | "play"
   | "prev-frame"
-  | "next-frame";
+  | "next-frame"
+  | "copy"
+  | "paste";
 
 export type Bindings = Record<BindingId, string>;
 
@@ -21,6 +23,8 @@ export type Shortcut =
   | { type: "play" }
   | { type: "frame"; delta: number }
   | { type: "new" }
+  | { type: "copy" }
+  | { type: "paste" }
   | { type: "space"; down: boolean };
 
 const ORDER: BindingId[] = [
@@ -32,6 +36,8 @@ const ORDER: BindingId[] = [
   "play",
   "prev-frame",
   "next-frame",
+  "copy",
+  "paste",
 ];
 
 const EXTRA: Partial<Record<BindingId, string[]>> = {
@@ -60,6 +66,8 @@ export function defaultBindings(): Bindings {
     play: "enter",
     "prev-frame": "arrowleft",
     "next-frame": "arrowright",
+    copy: "mod+c",
+    paste: "mod+v",
   } as Bindings;
   for (const tool of TOOL_META) bindings[tool.id] = tool.key;
   return bindings;
@@ -168,7 +176,7 @@ export function matchShortcut(event: KeyboardEvent, bindings: Bindings = loadBin
 }
 
 function toShortcut(id: BindingId): Shortcut {
-  if (id === "undo" || id === "redo" || id === "save" || id === "play" || id === "new") return { type: id };
+  if (id === "undo" || id === "redo" || id === "save" || id === "play" || id === "new" || id === "copy" || id === "paste") return { type: id };
   if (id === "prev-frame") return { type: "frame", delta: -1 };
   if (id === "next-frame") return { type: "frame", delta: 1 };
   return { type: "tool", tool: id };

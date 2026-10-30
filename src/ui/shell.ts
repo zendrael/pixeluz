@@ -148,6 +148,7 @@ function optionsBar(): string {
       ${iconOnly("scale-up", "fa-up-right-and-down-left-from-center", text.scaleUp)}
       ${iconOnly("scale-down", "fa-down-left-and-up-right-to-center", text.scaleDown)}
       ${iconOnly("copy-selection", "fa-copy", text.copySelection)}
+      ${iconOnly("paste-selection", "fa-paste", text.pasteSelection)}
       ${iconOnly("clear-selection", "fa-xmark", text.clearSelection)}
       ${iconOnly("brush-from-selection", "fa-paintbrush", text.brushFromSelection)}
     `)}

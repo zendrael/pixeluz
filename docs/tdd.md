@@ -41,9 +41,9 @@ Teste na interface pública da costura. Um teste novo numa costura que não est�
 | Paleta | `parsePaletteFile`, `paletteToHex`, `lospecSlug` | `.hex`, `.gpl`, JSON do Lospec | rede |
 | Zoom | `zoomFromPinch`, `consumeWheelPinch` | um nível por gesto e a folga no limite | evento `wheel` do browser |
 | Painel | `clampPanelLayout`, `timelineLimit`, `panelSnapTarget`, `optionGroupsFor` | teto, recolhimento e opções da ferramenta ativa | arraste real |
-| Atalho | `matchShortcut` | acorde para ação | foco do input |
+| Atalho | `matchShortcut` | acorde para ação, inclusive copiar e colar | foco do input |
 | Idioma | `preferredLocale` | escolha salva, português e espanhol do navegador, inglês nos demais | `navigator` real |
-| Sessão | `EditorSession` | grade, tile, texto, RotSprite, undo | layout Bootstrap |
+| Sessão | `EditorSession` | grade, tile, texto, RotSprite, copiar e colar a seleção, undo | layout Bootstrap |
 | Interface | o app no browser | o fluxo que o usuário vê | lógica já coberta acima |
 
 `npm test` roda as costuras automatizadas. Mudança de UI, layout, rota ou dado renderizado também se confirma no browser, no fluxo afetado.

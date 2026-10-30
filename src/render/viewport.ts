@@ -242,24 +242,24 @@ export class Viewport {
     const mask = this.session.selection;
     const doc = this.session.doc;
     if (!mask || mask.length !== doc.width * doc.height) return;
-    for (let y = 0; y < doc.height; y++) {
-      for (let x = 0; x < doc.width; x++) {
+    const band = Math.max(2, Math.min(4, Math.round(zoom / 4) || 2));
+    for (let y = 0; y < doc.height; y += 1) {
+      for (let x = 0; x < doc.width; x += 1) {
         if (mask[y * doc.width + x] !== 1) continue;
-        const edge =
-          x === 0 ||
-          y === 0 ||
-          x === doc.width - 1 ||
-          y === doc.height - 1 ||
-          mask[y * doc.width + x - 1] !== 1 ||
-          mask[y * doc.width + x + 1] !== 1 ||
-          mask[(y - 1) * doc.width + x] !== 1 ||
-          mask[(y + 1) * doc.width + x] !== 1;
-        if (!edge) continue;
         const px = Math.round(panX + x * zoom);
         const py = Math.round(panY + y * zoom);
-        this.ctx.fillStyle = (x + y) % 2 === 0 ? "#0d6efd" : "#ffffff";
-        this.ctx.fillRect(px, py, zoom, 1);
-        this.ctx.fillRect(px, py, 1, zoom);
+        this.ctx.fillStyle = "rgba(110, 168, 254, 0.45)";
+        this.ctx.fillRect(px, py, zoom, zoom);
+        const top = y === 0 || mask[(y - 1) * doc.width + x] !== 1;
+        const bottom = y === doc.height - 1 || mask[(y + 1) * doc.width + x] !== 1;
+        const left = x === 0 || mask[y * doc.width + x - 1] !== 1;
+        const right = x === doc.width - 1 || mask[y * doc.width + x + 1] !== 1;
+        if (!top && !bottom && !left && !right) continue;
+        this.ctx.fillStyle = (x + y) % 2 === 0 ? "#ffffff" : "#111111";
+        if (top) this.ctx.fillRect(px, py, zoom, Math.min(band, zoom));
+        if (bottom) this.ctx.fillRect(px, py + Math.max(0, zoom - band), zoom, Math.min(band, zoom));
+        if (left) this.ctx.fillRect(px, py, Math.min(band, zoom), zoom);
+        if (right) this.ctx.fillRect(px + Math.max(0, zoom - band), py, Math.min(band, zoom), zoom);
       }
     }
   }
