@@ -727,22 +727,39 @@ const blendNames: Record<Locale, string[]> = {
 
 const LOCALE_KEY = "pixeluz.locale";
 
-let active: Locale = "pt-BR";
+let active: Locale = "en";
 
-export const text: Messages = { ...ptBR };
+export const text: Messages = { ...en };
 
 export function currentLocale(): Locale {
   return active;
 }
 
+export function preferredLocale(saved: string | null, languages: readonly string[]): Locale {
+  if (saved && isLocale(saved)) return saved;
+  for (const language of languages) {
+    const primary = language.toLowerCase().split("-")[0];
+    if (primary === "pt") return "pt-BR";
+    if (primary === "es") return "es";
+  }
+  return "en";
+}
+
 export function readLocale(): Locale {
+  let saved: string | null = null;
   try {
-    const value = localStorage.getItem(LOCALE_KEY);
-    if (value === "pt-BR" || value === "en" || value === "es") return value;
+    saved = localStorage.getItem(LOCALE_KEY);
   } catch {
     /* sem armazenamento */
   }
-  return "pt-BR";
+  return preferredLocale(saved, browserLanguages());
+}
+
+function browserLanguages(): readonly string[] {
+  if (typeof navigator === "undefined") return [];
+  const languages = navigator.languages;
+  if (languages && languages.length > 0) return languages;
+  return navigator.language ? [navigator.language] : [];
 }
 
 export function applyLocale(locale: Locale): void {

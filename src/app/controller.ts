@@ -8,6 +8,7 @@ import { DEFAULT_BACKGROUND, DEFAULT_FOREGROUND, createSprite } from "../domain/
 import { bytesToBlob } from "../io/bytes";
 import { downloadBlob, downloadDataUrl, filePickerAvailable, OPEN_FILE_TYPES, PALETTE_FILE_TYPES, pickAndSave, pickFile, pngDataUrl, PROJECT_FILE_TYPES, safeFilename, type FilePickerType } from "../io/files";
 import { readAse, writeAse, isAseFile } from "../io/ase";
+import { isImageFile, readImageSprite } from "../io/image-file";
 import { writeGif } from "../io/gif";
 import { encodePng } from "../io/png";
 import { atlasJson, buildSpriteSheet } from "../io/sheet";
@@ -838,6 +839,15 @@ export class Controller {
         this.flash(text.opened);
         return;
       }
+      if (isImageFile(bytes)) {
+        const sprite = await readImageSprite(bytes, file.name);
+        this.session.replaceDocument(sprite, { ...DEFAULT_FOREGROUND }, { ...DEFAULT_BACKGROUND });
+        this.selectedPalette = 0;
+        Modal.getInstance(this.required("#modal-open"))?.hide();
+        this.viewport.fit();
+        this.flash(text.opened);
+        return;
+      }
       const project = deserializeProject(new TextDecoder().decode(bytes));
       this.session.replaceDocument(project.sprite, project.foreground, project.background);
       this.selectedPalette = 0;
@@ -868,7 +878,7 @@ export class Controller {
             .map(
               (project) => `<div class="list-group-item d-flex justify-content-between align-items-center gap-2">
                 <button type="button" class="btn btn-link text-start text-decoration-none text-truncate" data-open="${escapeHtml(project.id)}">${escapeHtml(project.name)}</button>
-                <span class="small text-secondary text-nowrap">${new Date(project.updatedAt).toLocaleString("pt-BR")}</span>
+                <span class="small text-secondary text-nowrap">${new Date(project.updatedAt).toLocaleString(currentLocale())}</span>
                 <button type="button" class="btn btn-sm btn-outline-danger" data-delete="${escapeHtml(project.id)}">${text.deleteStored}</button>
               </div>`,
             )

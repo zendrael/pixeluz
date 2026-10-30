@@ -12,7 +12,7 @@ Editor web original. A referência de comportamento é a documentação pública
 
 Vocabulário em [GLOSSARY.md](../../../GLOSSARY.md). Desenho e costuras de teste em [docs/tdd.md](../../../docs/tdd.md).
 
-A interface é Bootstrap 5, responsiva, com tema escuro. O idioma padrão é português brasileiro; inglês e espanhol são escolhidos na interface. Só o canvas do sprite usa `image-rendering: pixelated`. O fundo ao redor do sprite segue o tema escuro. O xadrez da transparência e a grade ficam claros.
+A interface é Bootstrap 5, responsiva, com tema escuro. O idioma padrão é inglês. Sem escolha salva, o navegador em português usa pt-BR e o em espanhol usa es; os demais ficam em inglês. A escolha salva na interface permanece. Só o canvas do sprite usa `image-rendering: pixelated`. O fundo ao redor do sprite segue o tema escuro. O xadrez da transparência e a grade ficam claros.
 
 ## Modelo
 

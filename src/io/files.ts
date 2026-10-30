@@ -36,7 +36,16 @@ export const PROJECT_FILE_TYPES: FilePickerType[] = [
 ];
 
 export const OPEN_FILE_TYPES: FilePickerType[] = [
-  { description: "Pixeluz ou Aseprite", accept: { "application/octet-stream": [".pixeluz.json", ".json", ".ase", ".aseprite"] } },
+  {
+    description: "Pixeluz, Aseprite ou imagem",
+    accept: {
+      "application/json": [".pixeluz.json", ".json"],
+      "application/octet-stream": [".ase", ".aseprite"],
+      "image/png": [".png"],
+      "image/gif": [".gif"],
+      "image/jpeg": [".jpg", ".jpeg"],
+    },
+  },
 ];
 
 export const PALETTE_FILE_TYPES: FilePickerType[] = [

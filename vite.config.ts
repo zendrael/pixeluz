@@ -14,8 +14,8 @@ export default defineConfig({
       manifest: {
         name: "Pixeluz",
         short_name: "Pixeluz",
-        description: "Editor de pixel art e animação para desktop e celular",
-        lang: "pt-BR",
+        description: "Pixel art and animation editor for desktop and phone",
+        lang: "en",
         theme_color: "#212529",
         background_color: "#212529",
         display: "standalone",

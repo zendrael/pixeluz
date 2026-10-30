@@ -1,5 +1,6 @@
 import { concatBytes } from "./bytes";
-import { createImage } from "../domain/image-buffer";
+import { cloneImage, createImage } from "../domain/image-buffer";
+import { MAX_FRAME_MS, MIN_FRAME_MS } from "../domain/limits";
 import { quantizePalette, nearestOpaque } from "../domain/quantize";
 import type { ImageBuffer, Rgba } from "../domain/types";
 
@@ -24,72 +25,176 @@ export function writeGif(frames: GifSource[]): Uint8Array {
   return concatBytes(parts);
 }
 
+export interface GifFrame {
+  image: ImageBuffer;
+  durationMs: number;
+}
+
 export function readGif(bytes: Uint8Array): ImageBuffer[] {
-  if (bytes.length < 13 || String.fromCharCode(...bytes.subarray(0, 6)) !== "GIF89a") throw new Error("GIF inválido");
+  return readGifFrames(bytes).map((frame) => frame.image);
+}
+
+export function readGifFrames(bytes: Uint8Array): GifFrame[] {
+  const signature = String.fromCharCode(...bytes.subarray(0, 6));
+  if (bytes.length < 13 || (signature !== "GIF87a" && signature !== "GIF89a")) throw new Error("GIF inválido");
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const width = view.getUint16(6, true);
   const height = view.getUint16(8, true);
   const packed = bytes[10] ?? 0;
-  const tableSize = 1 << ((packed & 7) + 1);
   let offset = 13;
-  const palette: Rgba[] = [];
-  if (packed & 0x80) {
-    for (let index = 0; index < tableSize; index += 1) {
-      palette.push({ r: bytes[offset] ?? 0, g: bytes[offset + 1] ?? 0, b: bytes[offset + 2] ?? 0, a: 255 });
-      offset += 3;
-    }
-  }
-  const frames: ImageBuffer[] = [];
+  const globalPalette = packed & 0x80 ? readPalette(bytes, offset, packed) : [];
+  if (packed & 0x80) offset += paletteBytes(packed);
+  const canvas = createImage(width, height);
+  const frames: GifFrame[] = [];
+  let delayCs = 10;
   let transparent = -1;
+  let graphicDisposal = 0;
+  let heldDisposal = 0;
+  let heldLeft = 0;
+  let heldTop = 0;
+  let heldWidth = 0;
+  let heldHeight = 0;
+  let restore: Uint8ClampedArray | null = null;
+
   while (offset < bytes.length) {
     const marker = bytes[offset];
     if (marker === 0x3b) break;
     if (marker === 0x21) {
       const label = bytes[offset + 1];
-      if (label === 0xf9 && (bytes[offset + 3] ?? 0) >= 4) {
+      if (label === 0xf9 && (bytes[offset + 2] ?? 0) >= 4) {
         const control = bytes[offset + 3] ?? 0;
-        transparent = control & 1 ? (bytes[offset + 6] ?? -1) : -1;
+        graphicDisposal = (control >> 2) & 7;
+        delayCs = view.getUint16(offset + 4, true);
+        transparent = control & 1 ? (bytes[offset + 6] ?? 0) : -1;
       }
-      offset += 2;
-      while (offset < bytes.length) {
-        const size = bytes[offset] ?? 0;
-        offset += 1 + size;
-        if (size === 0) break;
-      }
+      offset = skipSubBlocks(bytes, offset + 2);
       continue;
     }
     if (marker !== 0x2c) throw new Error("GIF inválido");
+    const frameLeft = view.getUint16(offset + 1, true);
+    const frameTop = view.getUint16(offset + 3, true);
     const frameWidth = view.getUint16(offset + 5, true);
     const frameHeight = view.getUint16(offset + 7, true);
+    const imagePacked = bytes[offset + 9] ?? 0;
     offset += 10;
+    const palette = imagePacked & 0x80 ? readPalette(bytes, offset, imagePacked) : globalPalette;
+    if (imagePacked & 0x80) offset += paletteBytes(imagePacked);
     const minCodeSize = bytes[offset] ?? 8;
     offset += 1;
-    const compressed: number[] = [];
-    while (offset < bytes.length) {
-      const size = bytes[offset] ?? 0;
-      offset += 1;
-      if (size === 0) break;
-      compressed.push(...bytes.subarray(offset, offset + size));
-      offset += size;
-    }
-    const indices = lzwDecode(Uint8Array.from(compressed), minCodeSize, frameWidth * frameHeight);
-    const image = createImage(width, height);
-    for (let index = 0; index < indices.length; index += 1) {
-      const colorIndex = indices[index] ?? 0;
-      const color = palette[colorIndex] ?? { r: 0, g: 0, b: 0, a: 255 };
-      const pixel = index * 4;
-      if (colorIndex === transparent) {
-        image.data[pixel + 3] = 0;
-        continue;
-      }
-      image.data[pixel] = color.r;
-      image.data[pixel + 1] = color.g;
-      image.data[pixel + 2] = color.b;
-      image.data[pixel + 3] = 255;
-    }
-    frames.push(image);
+    const compressed = readSubBlocks(bytes, offset);
+    offset = compressed.next;
+    let indices = lzwDecode(compressed.data, minCodeSize, frameWidth * frameHeight);
+    if (imagePacked & 0x40) indices = deinterlace(indices, frameWidth, frameHeight);
+    if (heldDisposal === 2) clearRect(canvas, heldLeft, heldTop, heldWidth, heldHeight);
+    else if (heldDisposal === 3 && restore) canvas.data.set(restore);
+    restore = graphicDisposal === 3 ? canvas.data.slice() : null;
+    paintFrame(canvas, indices, frameLeft, frameTop, frameWidth, frameHeight, palette, transparent);
+    const durationMs = Math.max(MIN_FRAME_MS, Math.min(MAX_FRAME_MS, (delayCs === 0 ? 10 : delayCs) * 10));
+    frames.push({ image: cloneImage(canvas), durationMs });
+    heldDisposal = graphicDisposal;
+    heldLeft = frameLeft;
+    heldTop = frameTop;
+    heldWidth = frameWidth;
+    heldHeight = frameHeight;
+    graphicDisposal = 0;
+    transparent = -1;
+    delayCs = 10;
   }
+  if (frames.length === 0) throw new Error("GIF inválido");
   return frames;
+}
+
+function paletteBytes(packed: number): number {
+  return (1 << ((packed & 7) + 1)) * 3;
+}
+
+function readPalette(bytes: Uint8Array, offset: number, packed: number): Rgba[] {
+  const count = 1 << ((packed & 7) + 1);
+  const palette: Rgba[] = [];
+  for (let index = 0; index < count; index += 1) {
+    const start = offset + index * 3;
+    palette.push({ r: bytes[start] ?? 0, g: bytes[start + 1] ?? 0, b: bytes[start + 2] ?? 0, a: 255 });
+  }
+  return palette;
+}
+
+function skipSubBlocks(bytes: Uint8Array, offset: number): number {
+  while (offset < bytes.length) {
+    const size = bytes[offset] ?? 0;
+    offset += 1 + size;
+    if (size === 0) break;
+  }
+  return offset;
+}
+
+function readSubBlocks(bytes: Uint8Array, offset: number): { data: Uint8Array; next: number } {
+  const parts: number[] = [];
+  while (offset < bytes.length) {
+    const size = bytes[offset] ?? 0;
+    offset += 1;
+    if (size === 0) break;
+    parts.push(...bytes.subarray(offset, offset + size));
+    offset += size;
+  }
+  return { data: Uint8Array.from(parts), next: offset };
+}
+
+function paintFrame(
+  canvas: ImageBuffer,
+  indices: Uint8Array,
+  left: number,
+  top: number,
+  frameWidth: number,
+  frameHeight: number,
+  palette: Rgba[],
+  transparent: number,
+): void {
+  for (let y = 0; y < frameHeight; y += 1) {
+    for (let x = 0; x < frameWidth; x += 1) {
+      const colorIndex = indices[y * frameWidth + x] ?? 0;
+      if (colorIndex === transparent) continue;
+      const px = left + x;
+      const py = top + y;
+      if (px < 0 || py < 0 || px >= canvas.width || py >= canvas.height) continue;
+      const color = palette[colorIndex] ?? { r: 0, g: 0, b: 0, a: 255 };
+      const pixel = (py * canvas.width + px) * 4;
+      canvas.data[pixel] = color.r;
+      canvas.data[pixel + 1] = color.g;
+      canvas.data[pixel + 2] = color.b;
+      canvas.data[pixel + 3] = 255;
+    }
+  }
+}
+
+function clearRect(canvas: ImageBuffer, left: number, top: number, frameWidth: number, frameHeight: number): void {
+  for (let y = 0; y < frameHeight; y += 1) {
+    for (let x = 0; x < frameWidth; x += 1) {
+      const px = left + x;
+      const py = top + y;
+      if (px < 0 || py < 0 || px >= canvas.width || py >= canvas.height) continue;
+      const pixel = (py * canvas.width + px) * 4;
+      canvas.data[pixel] = 0;
+      canvas.data[pixel + 1] = 0;
+      canvas.data[pixel + 2] = 0;
+      canvas.data[pixel + 3] = 0;
+    }
+  }
+}
+
+function deinterlace(indices: Uint8Array, width: number, height: number): Uint8Array {
+  const out = new Uint8Array(indices.length);
+  const starts = [0, 4, 2, 1];
+  const steps = [8, 8, 4, 2];
+  let src = 0;
+  for (let pass = 0; pass < 4; pass += 1) {
+    const start = starts[pass] ?? 0;
+    const step = steps[pass] ?? 1;
+    for (let y = start; y < height; y += step) {
+      out.set(indices.subarray(src, src + width), y * width);
+      src += width;
+    }
+  }
+  return out;
 }
 
 function header(width: number, height: number, table: Rgba[]): Uint8Array {
