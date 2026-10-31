@@ -1,4 +1,5 @@
 import { MIN_ZOOM, gridCell, gridLines } from "../domain/limits";
+import { palmBlocksTouch, pointerSamples } from "./pen";
 import { consumeWheelPinch, wheelDeltaPixels, zoomFromPinch } from "./zoom-gesture";
 import { sliceKeyAt } from "../domain/slices";
 import { placePixel } from "../domain/symmetry";
@@ -25,7 +26,8 @@ export class Viewport {
   private readonly onionCanvas = document.createElement("canvas");
   private readonly checker = document.createElement("canvas");
   private readonly observer: ResizeObserver;
-  private pointers = new Map<number, { x: number; y: number }>();
+  private pointers = new Map<number, { x: number; y: number; type: string }>();
+  private penSeenAt: number | null = null;
   private gesture: Gesture = { kind: "none" };
   private spaceHeld = false;
   private fittedId: string | null = null;
@@ -296,11 +298,17 @@ export class Viewport {
 
   private onPointerDown(event: PointerEvent): void {
     if (event.button > 2) return;
+    this.rememberPen(event);
+    if (event.pointerType === "pen") this.releaseTouch();
+    if (palmBlocksTouch(event.pointerType, this.penDown(), this.penSeenAt, event.timeStamp)) {
+      event.preventDefault();
+      return;
+    }
     event.preventDefault();
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     this.canvas.setPointerCapture(event.pointerId);
     const point = this.canvasPoint(event.clientX, event.clientY);
-    this.pointers.set(event.pointerId, point);
+    this.pointers.set(event.pointerId, { ...point, type: event.pointerType });
     if (this.pointers.size >= 2) {
       this.cancelTool();
       this.startPinch();
@@ -316,8 +324,11 @@ export class Viewport {
   }
 
   private onPointerMove(event: PointerEvent): void {
+    this.rememberPen(event);
+    if (!this.pointers.has(event.pointerId) && palmBlocksTouch(event.pointerType, this.penDown(), this.penSeenAt, event.timeStamp)) return;
     const point = this.canvasPoint(event.clientX, event.clientY);
-    if (this.pointers.has(event.pointerId)) this.pointers.set(event.pointerId, point);
+    const tracked = this.pointers.get(event.pointerId);
+    if (tracked) this.pointers.set(event.pointerId, { ...point, type: tracked.type });
     this.publishHover(point);
     if (this.gesture.kind === "pinch") {
       this.updatePinch();
@@ -330,11 +341,14 @@ export class Viewport {
       return;
     }
     if (this.gesture.kind === "tool" && this.gesture.pointerId === event.pointerId) {
-      this.tools().onMove(this.toolContext(event, point));
+      for (const sample of this.strokeSamples(event)) {
+        this.tools().onMove(this.toolContext(sample, this.canvasPoint(sample.clientX, sample.clientY)));
+      }
     }
   }
 
   private onPointerUp(event: PointerEvent): void {
+    this.rememberPen(event);
     const point = this.canvasPoint(event.clientX, event.clientY);
     this.pointers.delete(event.pointerId);
     if (this.gesture.kind === "tool" && this.gesture.pointerId === event.pointerId) {
@@ -424,5 +438,27 @@ export class Viewport {
   private canvasPoint(clientX: number, clientY: number): { x: number; y: number } {
     const rect = this.canvas.getBoundingClientRect();
     return { x: clientX - rect.left, y: clientY - rect.top };
+  }
+
+  private rememberPen(event: PointerEvent): void {
+    if (event.pointerType === "pen") this.penSeenAt = event.timeStamp;
+  }
+
+  private penDown(): boolean {
+    for (const pointer of this.pointers.values()) if (pointer.type === "pen") return true;
+    return false;
+  }
+
+  private releaseTouch(): void {
+    for (const [id, pointer] of this.pointers) {
+      if (pointer.type === "touch") this.pointers.delete(id);
+    }
+    if (this.gesture.kind === "none") return;
+    if (this.gesture.kind === "pinch" || !this.pointers.has(this.gesture.pointerId)) this.cancelTool();
+  }
+
+  private strokeSamples(event: PointerEvent): readonly PointerEvent[] {
+    const coalesced = typeof event.getCoalescedEvents === "function" ? event.getCoalescedEvents() : [];
+    return pointerSamples(coalesced, event);
   }
 }
