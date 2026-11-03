@@ -229,9 +229,9 @@ export function mountShell(root: HTMLElement): void {
         ${iconButton("undo", "fa-rotate-left", text.undo, "btn-undo")}
         ${iconButton("redo", "fa-rotate-right", text.redo, "btn-redo")}
         ${iconButton("shortcuts", "fa-keyboard", text.shortcuts, "btn-shortcuts")}
-        ${iconButton("settings", "fa-gear", text.settings, "btn-settings")}
         ${iconButton("grid", "fa-table-cells", text.grid, "btn-grid")}
         ${iconButton("fit", "fa-expand", text.fit, "btn-fit")}
+        ${iconButton("settings", "fa-gear", text.settings, "btn-settings")}
       </div>
     </header>
     <div id="doc-tabs" class="doc-tabs d-flex align-items-center gap-1 overflow-auto border-bottom bg-body px-2 py-1"></div>
