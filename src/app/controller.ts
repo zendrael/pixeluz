@@ -27,6 +27,7 @@ import { currentLocale, isLocale, text, type Locale } from "../ui/i18n";
 import { clampPanelLayout, PANEL_COLLAPSED, readPanelLayout, SIDE_MAX, SIDE_MIN, TIMELINE_MIN, timelineLimit, writePanelLayout, type PanelLayout } from "../ui/panel-layout";
 import { panelSnapTarget, prefersReducedMotion, releaseVelocity, rubberband, settleNumber, trackPanelSize } from "../ui/motion";
 import { spriteStaysInBrowser } from "../ui/browser-notice";
+import { askConfirm, bindDialog } from "../ui/dialog";
 import { optionGroupsFor } from "../ui/option-groups";
 import { PALETTE_PRESETS, presetIdFor, samePalette } from "../domain/palettes";
 import {
@@ -105,6 +106,7 @@ export class Controller {
       this.required("#status-pos").textContent = point ? `${point.x}, ${point.y}` : "";
     });
     renderToolbars(this.hosts(".tool-host"), this.bindings);
+    bindDialog(this.root);
     this.bind();
     this.applyLayout();
     for (const session of this.sessions) this.watch(session);
@@ -188,7 +190,7 @@ export class Controller {
     }
     this.required<HTMLFormElement>("#form-new").addEventListener("submit", (event) => {
       event.preventDefault();
-      this.createSprite();
+      void this.createSprite();
     }, { signal });
     this.required<HTMLFormElement>("#form-video").addEventListener("submit", (event) => {
       event.preventDefault();
@@ -534,7 +536,7 @@ export class Controller {
         this.addTab();
         break;
       case "close-tab":
-        this.closeTab(Number(target.dataset.tab ?? this.activeIndex));
+        void this.closeTab(Number(target.dataset.tab ?? this.activeIndex));
         break;
       default:
         break;
@@ -611,8 +613,8 @@ export class Controller {
     this.viewport.syncCursor();
   }
 
-  private createSprite(): void {
-    if (this.session.dirty && !window.confirm(text.discard)) return;
+  private async createSprite(): Promise<void> {
+    if (this.session.dirty && !(await askConfirm(text.discard))) return;
     const width = Number(this.required<HTMLInputElement>("#new-width").value);
     const height = Number(this.required<HTMLInputElement>("#new-height").value);
     try {
@@ -852,7 +854,7 @@ export class Controller {
   }
 
   private async openStored(id: string): Promise<void> {
-    if (this.session.dirty && !window.confirm(text.discard)) return;
+    if (this.session.dirty && !(await askConfirm(text.discard))) return;
     try {
       const project = await loadProject(id);
       this.session.replaceDocument(project.sprite, project.foreground, project.background);
@@ -866,7 +868,7 @@ export class Controller {
   }
 
   private async openFile(file: File): Promise<void> {
-    if (this.session.dirty && !window.confirm(text.discard)) return;
+    if (this.session.dirty && !(await askConfirm(text.discard))) return;
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
       if (isAseFile(bytes)) {
@@ -901,7 +903,7 @@ export class Controller {
   }
 
   private async removeStored(id: string): Promise<void> {
-    if (!window.confirm(text.deleteConfirm)) return;
+    if (!(await askConfirm(text.deleteConfirm))) return;
     try {
       await deleteProject(id);
       await this.refreshProjects();
@@ -1330,10 +1332,10 @@ export class Controller {
     void this.persistWorkspace();
   }
 
-  private closeTab(index: number): void {
+  private async closeTab(index: number): Promise<void> {
     const session = this.sessions[index];
     if (!session) return;
-    if (session.dirty && !window.confirm(text.closeTabConfirm)) return;
+    if (session.dirty && !(await askConfirm(text.closeTabConfirm))) return;
     session.pausePlayback();
     this.sessions.splice(index, 1);
     if (this.sessions.length === 0) {

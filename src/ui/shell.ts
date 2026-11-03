@@ -439,5 +439,23 @@ export function mountShell(root: HTMLElement): void {
           </div>
         </div>
       </div>
+    </div>
+    <div class="modal fade" id="modal-dialog" tabindex="-1" aria-labelledby="dialog-title" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title h5" id="dialog-title">${text.dialogTitle}</h2>
+            ${closeButton("modal")}
+          </div>
+          <div class="modal-body">
+            <p id="dialog-message" class="mb-0"></p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-dialog="cancel">${text.cancel}</button>
+            <button type="button" class="btn btn-primary" data-dialog="confirm">${text.dialogConfirm}</button>
+            <button type="button" class="btn btn-primary" data-dialog="ok" hidden>${text.dialogOk}</button>
+          </div>
+        </div>
+      </div>
     </div>`;
 }

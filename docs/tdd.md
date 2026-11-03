@@ -48,6 +48,7 @@ Teste na interface pública da costura. Um teste novo numa costura que não est�
 | Idioma | `preferredLocale` | escolha salva, português e espanhol do navegador, inglês nos demais | `navigator` real |
 | Sessão | `EditorSession` | grade, tile, texto, RotSprite, copiar e colar a seleção (inclusive entre abas), camada travada, undo | layout Bootstrap |
 | Atualização | `beginUpdate` | aviso, gravação e um único recarregamento | service worker e rede |
+| Diálogo | `askConfirm` / `askAlert` | resolve true/false e fecha; alerta resolve no OK | Bootstrap real no browser |
 | Interface | o app no browser | o fluxo que o usuário vê | lógica já coberta acima |
 
 `npm test` roda as costuras automatizadas. Mudança de UI, layout, rota ou dado renderizado também se confirma no browser, no fluxo afetado.
