@@ -68,7 +68,7 @@ A seleção mora na sessão, em `src/domain`, e não entra no PNG nem no JSON do
 Cada item vira um `.scratch/<slug>/spec.md` antes do código. As costuras novas entram em `docs/tdd.md` no mesmo ciclo. Ordem sugerida:
 
 1. **Caneta: opacidade estável** — feito (ADR-0002, costura Caneta).
-2. **Costura Armazenamento** — testes de IndexedDB sem depender do smoke.
+2. **Costura Armazenamento** — feito (`src/storage/db.test.ts`).
 3. **Blend modes parametrizados** — cobrir cada `BlendMode` no composite.
 4. **ASE tilemap** — ida e volta de tileset e cel de índices.
 5. **Clipboard entre abas** — colar a seleção em outra `EditorSession`.

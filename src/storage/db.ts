@@ -97,3 +97,18 @@ export async function loadRecovery(): Promise<{ projects: LoadedProject[]; activ
     projects: row.projects.map((json) => deserializeProject(json)),
   };
 }
+
+/** Closes the cached connection and deletes the database. Only for tests. */
+export async function resetDatabaseForTests(): Promise<void> {
+  if (databasePromise) {
+    const db = await databasePromise.catch(() => null);
+    db?.close();
+    databasePromise = null;
+  }
+  await new Promise<void>((resolve, reject) => {
+    const request = indexedDB.deleteDatabase("pixeluz");
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error ?? new Error("deleteDatabase failed"));
+    request.onblocked = () => resolve();
+  });
+}
