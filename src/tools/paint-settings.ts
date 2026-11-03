@@ -1,4 +1,3 @@
-import { clamp8 } from "../domain/color";
 import { penFactor } from "../domain/brush";
 import type { EditorApi } from "./tool";
 import type { PaintSettings } from "../render/paint";
@@ -26,7 +25,7 @@ export function paintSettings(
     tile: session.tile,
     selection: session.selection,
     color,
-    opacity: clamp8(session.brushOpacity * factor),
+    opacity: session.brushOpacity,
     ink: session.ink,
     palette: session.doc.palette,
     button,

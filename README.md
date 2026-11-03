@@ -1,6 +1,6 @@
 # Pixeluz
 
-Editor de pixel art e animação no navegador. A arte no canvas continua pixelada; a interface é Bootstrap 5, responsiva, em português, e funciona no desktop e no celular. O app é um PWA: o shell fica disponível offline depois da instalação. Em toda visita, no navegador ou instalado, o app procura uma versão nova. Se houver, avisa que a página vai recarregar e atualiza.
+Editor de pixel art e animação no navegador. A arte no canvas continua pixelada; a interface é Bootstrap 5, responsiva, e funciona no desktop e no celular. O idioma padrão é inglês; sem escolha salva, o navegador em português usa pt-BR e o em espanhol usa es. O app é um PWA: o shell fica disponível offline depois da instalação. Em toda visita, no navegador ou instalado, o app procura uma versão nova. Se houver, avisa que a página vai recarregar e atualiza.
 
 A implementação é original e está sob a licença MIT. O comportamento segue a documentação pública do [Aseprite](https://www.aseprite.org/docs/) e a descrição do [LibreSprite](https://libresprite.github.io/). O código desses projetos não entra aqui. O [REA](https://github.com/morluto/rea) não é usado: a documentação pública já cobre as funções, e decompilar o Aseprite proprietário copiaria código protegido.
 
@@ -14,7 +14,7 @@ A implementação é original e está sob a licença MIT. O comportamento segue 
 - Reproduzir, criar, duplicar, reordenar, inverter e copiar quadros; tags com loop; onion skin
 - Desfazer e refazer
 - Modos RGBA, indexado e cinza, com filtros de inverter, brilho, matiz, contorno e troca de cor
-- Salvar o projeto em JSON no IndexedDB, baixar o JSON e exportar PNG, GIF, sequência PNG, sprite sheet e `.aseprite`
+- Salvar o projeto em JSON no IndexedDB, baixar o JSON e exportar PNG, GIF, sequência PNG, sprite sheet, vídeo (MP4 ou WebM) e `.aseprite`
 - No desktop, abrir e salvar arquivo pelo seletor do sistema; no celular, o download e o campo de arquivo
 - Tema escuro na interface e no fundo ao redor do sprite; o xadrez e a grade ficam claros
 - Tilemap com desenho de tiles ou pixels, slices, texto bitmap e configurações de tamanho do canvas (redimensionar, recortar, autocrop e RotSprite)

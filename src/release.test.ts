@@ -27,13 +27,14 @@ describe("arquivos da 1.0", () => {
     expect(paletteCredit("endesga32")).toContain("Endesga");
   });
 
-  it("descreve a paleta inicial, o Lospec e a grade no README", () => {
+  it("descreve a paleta inicial, o Lospec, a grade e o vídeo no README", () => {
     const readme = readFileSync(new URL("README.md", root), "utf8");
     expect(readme).toContain("Sweetie 16");
     expect(readme).toContain("GrafxKid");
     expect(readme).toContain("Lospec");
     expect(readme).toContain(".hex");
     expect(readme).toContain("Configurações");
+    expect(readme).toMatch(/vídeo \(MP4 ou WebM\)|MP4 ou WebM/);
     expect(readme).toMatch(/inicial[\s\S]{0,80}Sweetie 16|Sweetie 16[\s\S]{0,40}inicial/);
     expect(readme).not.toMatch(/Paletas DB32 \(DawnBringer, domínio público\) e Endesga 32/);
   });

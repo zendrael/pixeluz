@@ -18,7 +18,7 @@ Formatos legados FLC, FLI, PCX e TGA ficam de fora. CLI, plugins Lua e perfis IC
 - Simetria horizontal, vertical e ambas
 - Modo tiled em X, Y e ambos, desenhando no cel e repetindo no viewport
 - Tintas: simple, alpha compositing, copy, lock alpha e shading pela ordem da paleta
-- Pressão de `PointerEvent.pressure` na dinâmica do pincel, quando o ponteiro é uma caneta
+- Pressão de `PointerEvent.pressure` no tamanho do pincel quando o ponteiro é uma caneta; a opacidade do pincel fica no valor da sessão
 - Seleção retangular, elíptica, laço, laço poligonal e varinha, com substituir, somar, subtrair e interseção
 - Mover, copiar, espelhar, escalar e rotacionar a seleção
 
@@ -62,3 +62,15 @@ A seleção mora na sessão, em `src/domain`, e não entra no PNG nem no JSON do
 - Botões de transformar a seleção só com ícone e tooltip
 - Painel lateral e linha do tempo redimensionáveis e minimizáveis no desktop
 - Prévia do quadro acima das cores, também na folha de cores no celular
+
+## Pós-1.0 — melhorias em etapas
+
+Cada item vira um `.scratch/<slug>/spec.md` antes do código. As costuras novas entram em `docs/tdd.md` no mesmo ciclo. Ordem sugerida:
+
+1. **Caneta: opacidade estável** — feito (ADR-0002, costura Caneta).
+2. **Costura Armazenamento** — testes de IndexedDB sem depender do smoke.
+3. **Blend modes parametrizados** — cobrir cada `BlendMode` no composite.
+4. **ASE tilemap** — ida e volta de tileset e cel de índices.
+5. **Clipboard entre abas** — colar a seleção em outra `EditorSession`.
+6. **Vídeo por tag** — exportar só a faixa da tag ativa.
+7. **Camada travada** — recusar pintura, cola e transform na camada `locked`.

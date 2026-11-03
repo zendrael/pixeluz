@@ -1,6 +1,6 @@
 # Glossário
 
-Termos do editor. No código os identificadores estão em inglês. Na interface, em português.
+Termos do editor. No código os identificadores estão em inglês. A interface fala pt-BR, en ou es; o padrão é inglês, salvo escolha na interface ou idioma do navegador.
 
 **Sprite.** O `SpriteDocument`: tamanho, modo de cor, paleta, quadros, camadas, cels, tags, slices, tilesets e grade. Não existe um segundo modelo de sprite.
 
