@@ -5,7 +5,7 @@ function fa(icon: string): string {
 }
 
 function closeButton(dismiss: "modal" | "offcanvas"): string {
-  return `<button type="button" class="btn btn-sm btn-outline-secondary icon-btn" data-bs-dismiss="${dismiss}" aria-label="${text.close}">${fa("fa-xmark")}</button>`;
+  return `<button type="button" class="btn btn-sm btn-outline-secondary icon-btn ms-auto" data-bs-dismiss="${dismiss}" aria-label="${text.close}">${fa("fa-xmark")}</button>`;
 }
 
 function iconButton(action: string, icon: string, label: string, id = ""): string {
