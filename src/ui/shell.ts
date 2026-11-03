@@ -13,66 +13,71 @@ function iconButton(action: string, icon: string, label: string, id = ""): strin
   return `<button type="button" class="btn btn-outline-secondary btn-sm icon-btn"${identity} data-action="${action}" title="${label}" aria-label="${label}"><i class="fa-solid ${icon}" aria-hidden="true"></i></button>`;
 }
 
+function propRow(label: string, control: string): string {
+  return `<div class="prop-row"><span class="prop-label">${label}</span><div class="prop-value">${control}</div></div>`;
+}
+
+function propTable(rows: string): string {
+  return `<div class="prop-table">${rows}</div>`;
+}
+
 function colorPanel(): string {
   return `<div class="color-panel p-2">
-    <div class="d-flex align-items-center gap-2 mb-2">
-      <h2 class="h6 mb-0">${text.colors}</h2>
-      <label class="small d-flex align-items-center gap-1 mb-0 ms-auto">${text.colorMode}
-        <select data-field="color-mode" class="form-select form-select-sm" aria-label="${text.colorMode}">
+    <h2 class="h6 mb-2">${text.colors}</h2>
+    ${propTable(`
+      ${propRow(text.colorMode, `<select data-field="color-mode" class="form-select form-select-sm" aria-label="${text.colorMode}">
           <option value="rgba">${text.modeRgba}</option>
           <option value="indexed">${text.modeIndexed}</option>
           <option value="grayscale">${text.modeGrayscale}</option>
-        </select>
-      </label>
-    </div>
-    <div class="d-flex gap-3 mb-2">
-      <label class="small">${text.foreground}
-        <input data-color-role="fg" type="color" class="form-control form-control-color" value="#000000" />
-        <span data-alpha="fg" class="d-block text-secondary"></span>
-      </label>
-      <label class="small">${text.background}
-        <input data-color-role="bg" type="color" class="form-control form-control-color" value="#ffffff" />
-        <span data-alpha="bg" class="d-block text-secondary"></span>
-      </label>
-    </div>
-    <div class="d-flex flex-wrap gap-1 mb-2">
+        </select>`)}
+      ${propRow(text.foreground, `<div class="d-flex align-items-center gap-2">
+          <input data-color-role="fg" type="color" class="form-control form-control-color" value="#000000" aria-label="${text.foreground}" />
+          <span data-alpha="fg" class="text-secondary small"></span>
+        </div>`)}
+      ${propRow(text.background, `<div class="d-flex align-items-center gap-2">
+          <input data-color-role="bg" type="color" class="form-control form-control-color" value="#ffffff" aria-label="${text.background}" />
+          <span data-alpha="bg" class="text-secondary small"></span>
+        </div>`)}
+    `)}
+    <div class="d-flex flex-wrap gap-1 my-2">
       <button type="button" class="btn btn-sm btn-outline-secondary" data-action="palette-add">${text.addColor}</button>
       <button type="button" class="btn btn-sm btn-outline-secondary" data-action="palette-replace">${text.replaceColor}</button>
       <button type="button" class="btn btn-sm btn-outline-secondary" data-action="palette-remove">${text.removeColor}</button>
       <button type="button" class="btn btn-sm btn-outline-secondary" data-action="bg-clear">${text.clearBackground}</button>
     </div>
     <div class="palette-host"></div>
-    <label class="small d-flex align-items-center gap-1 mt-2 mb-0">${text.presets}
-      <select data-field="palette-preset" class="form-select form-select-sm" aria-label="${text.presets}">
-        <option value="">${text.paletteCustom}</option>
-        <option value="sweetie16">Sweetie 16</option>
-        <option value="db32">DB32</option>
-        <option value="endesga32">Endesga 32</option>
-      </select>
-    </label>
-    <p class="palette-credit small text-secondary mb-0"></p>
-    <label class="small d-block mt-2 mb-1">${text.lospec}</label>
-    <div class="d-flex flex-wrap gap-1">
-      <input data-field="lospec" type="text" class="form-control form-control-sm" placeholder="${text.lospecPlaceholder}" aria-label="${text.lospecUrl}" style="min-width:12rem;flex:1 1 12rem" />
-      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="palette-lospec">${text.importPalette}</button>
-      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="palette-import" title="${text.paletteFileHint}" aria-label="${text.importPaletteFile}">${text.importPaletteFile}</button>
-      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="palette-export">${text.exportPalette}</button>
-    </div>
-    <div class="d-flex flex-wrap align-items-center gap-1 mt-2">
-      <select data-filter="kind" class="form-select form-select-sm" aria-label="${text.filters}" style="width:9rem">
-        <option value="invert">${text.filterInvert}</option>
-        <option value="brightness">${text.filterBrightness}</option>
-        <option value="hue">${text.filterHue}</option>
-        <option value="outline">${text.filterOutline}</option>
-        <option value="replace">${text.filterReplace}</option>
-      </select>
-      <label class="small d-flex align-items-center gap-1 mb-0">${text.brightness}<input data-filter="brightness" type="number" min="-100" max="100" value="0" class="form-control form-control-sm" style="width:4.2rem" /></label>
-      <label class="small d-flex align-items-center gap-1 mb-0">${text.contrast}<input data-filter="contrast" type="number" min="-100" max="100" value="0" class="form-control form-control-sm" style="width:4.2rem" /></label>
-      <label class="small d-flex align-items-center gap-1 mb-0">${text.hue}<input data-filter="hue" type="number" min="-180" max="180" value="0" class="form-control form-control-sm" style="width:4.2rem" /></label>
-      <label class="small d-flex align-items-center gap-1 mb-0">${text.saturation}<input data-filter="saturation" type="number" min="-100" max="100" value="0" class="form-control form-control-sm" style="width:4.2rem" /></label>
-      <label class="small d-flex align-items-center gap-1 mb-0">${text.tolerance}<input data-filter="tolerance" type="number" min="0" max="255" value="0" class="form-control form-control-sm" style="width:4.2rem" /></label>
-      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="apply-filter">${text.applyFilter}</button>
-    </div>
+    ${propTable(`
+      ${propRow(text.presets, `<select data-field="palette-preset" class="form-select form-select-sm" aria-label="${text.presets}">
+          <option value="">${text.paletteCustom}</option>
+          <option value="sweetie16">Sweetie 16</option>
+          <option value="db32">DB32</option>
+          <option value="endesga32">Endesga 32</option>
+        </select>`)}
+    `)}
+    <p class="palette-credit small text-secondary mb-0 mt-1"></p>
+    ${propTable(`
+      ${propRow(text.lospec, `<div class="d-flex flex-wrap gap-1">
+          <input data-field="lospec" type="text" class="form-control form-control-sm" placeholder="${text.lospecPlaceholder}" aria-label="${text.lospecUrl}" style="min-width:8rem;flex:1 1 8rem" />
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-action="palette-lospec">${text.importPalette}</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-action="palette-import" title="${text.paletteFileHint}" aria-label="${text.importPaletteFile}">${text.importPaletteFile}</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-action="palette-export">${text.exportPalette}</button>
+        </div>`)}
+    `)}
+    ${propTable(`
+      ${propRow(text.filters, `<select data-filter="kind" class="form-select form-select-sm" aria-label="${text.filters}">
+          <option value="invert">${text.filterInvert}</option>
+          <option value="brightness">${text.filterBrightness}</option>
+          <option value="hue">${text.filterHue}</option>
+          <option value="outline">${text.filterOutline}</option>
+          <option value="replace">${text.filterReplace}</option>
+        </select>`)}
+      ${propRow(text.brightness, `<input data-filter="brightness" type="number" min="-100" max="100" value="0" class="form-control form-control-sm prop-number" aria-label="${text.brightness}" />`)}
+      ${propRow(text.contrast, `<input data-filter="contrast" type="number" min="-100" max="100" value="0" class="form-control form-control-sm prop-number" aria-label="${text.contrast}" />`)}
+      ${propRow(text.hue, `<input data-filter="hue" type="number" min="-180" max="180" value="0" class="form-control form-control-sm prop-number" aria-label="${text.hue}" />`)}
+      ${propRow(text.saturation, `<input data-filter="saturation" type="number" min="-100" max="100" value="0" class="form-control form-control-sm prop-number" aria-label="${text.saturation}" />`)}
+      ${propRow(text.tolerance, `<input data-filter="tolerance" type="number" min="0" max="255" value="0" class="form-control form-control-sm prop-number" aria-label="${text.tolerance}" />`)}
+    `)}
+    <button type="button" class="btn btn-sm btn-outline-secondary mt-2" data-action="apply-filter">${text.applyFilter}</button>
   </div>`;
 }
 
@@ -89,17 +94,19 @@ function layerPanel(): string {
       <button type="button" class="btn btn-sm btn-outline-secondary" data-action="layer-down" title="${text.layerDown}" aria-label="${text.layerDown}">${fa("fa-arrow-down")}</button>
     </div>
     <div class="layers-host"></div>
-    <div class="d-flex flex-wrap align-items-center gap-1 mt-2 small">
-      <label class="d-flex align-items-center gap-1 mb-0">${text.drawTiles}<select data-field="tile-draw" class="form-select form-select-sm"><option value="tiles">${text.drawTiles}</option><option value="pixels">${text.drawPixels}</option></select></label>
-      <label class="d-flex align-items-center gap-1 mb-0">${text.drawPixels}<select data-field="tile-pixel" class="form-select form-select-sm"><option value="manual">${text.tileManual}</option><option value="auto">${text.tileAuto}</option><option value="stack">${text.tileStack}</option></select></label>
-    </div>
+    ${propTable(`
+      ${propRow(text.drawTiles, `<select data-field="tile-draw" class="form-select form-select-sm" aria-label="${text.drawTiles}"><option value="tiles">${text.drawTiles}</option><option value="pixels">${text.drawPixels}</option></select>`)}
+      ${propRow(text.drawPixels, `<select data-field="tile-pixel" class="form-select form-select-sm" aria-label="${text.drawPixels}"><option value="manual">${text.tileManual}</option><option value="auto">${text.tileAuto}</option><option value="stack">${text.tileStack}</option></select>`)}
+    `)}
     <div class="tile-host d-flex flex-wrap gap-1 mt-2"></div>
-    <div class="d-flex flex-wrap align-items-center gap-1 mt-2 small">
-      <label class="d-flex align-items-center gap-1 mb-0">${text.layerOpacity}<input data-field="layer-opacity" type="number" min="0" max="255" class="form-control form-control-sm" style="width:4.5rem" /></label>
-      <label class="d-flex align-items-center gap-1 mb-0">${text.blend}<select data-field="layer-blend" class="form-select form-select-sm">${blendLabels().map(([value, label]) => `<option value="${value}">${label}</option>`).join("")}</select></label>
-      <label class="d-flex align-items-center gap-1 mb-0">${text.celX}<input data-field="cel-x" type="number" class="form-control form-control-sm" style="width:4.5rem" /></label>
-      <label class="d-flex align-items-center gap-1 mb-0">${text.celY}<input data-field="cel-y" type="number" class="form-control form-control-sm" style="width:4.5rem" /></label>
-      <label class="d-flex align-items-center gap-1 mb-0">${text.celOpacity}<input data-field="cel-opacity" type="number" min="0" max="255" class="form-control form-control-sm" style="width:4.5rem" /></label>
+    ${propTable(`
+      ${propRow(text.layerOpacity, `<input data-field="layer-opacity" type="number" min="0" max="255" class="form-control form-control-sm prop-number" aria-label="${text.layerOpacity}" />`)}
+      ${propRow(text.blend, `<select data-field="layer-blend" class="form-select form-select-sm" aria-label="${text.blend}">${blendLabels().map(([value, label]) => `<option value="${value}">${label}</option>`).join("")}</select>`)}
+      ${propRow(text.celX, `<input data-field="cel-x" type="number" class="form-control form-control-sm prop-number" aria-label="${text.celX}" />`)}
+      ${propRow(text.celY, `<input data-field="cel-y" type="number" class="form-control form-control-sm prop-number" aria-label="${text.celY}" />`)}
+      ${propRow(text.celOpacity, `<input data-field="cel-opacity" type="number" min="0" max="255" class="form-control form-control-sm prop-number" aria-label="${text.celOpacity}" />`)}
+    `)}
+    <div class="d-flex flex-wrap gap-1 mt-2">
       <button type="button" class="btn btn-sm btn-outline-secondary" data-action="link-cel">${text.linkCel}</button>
       <button type="button" class="btn btn-sm btn-outline-secondary" data-action="unlink-cel">${text.unlinkCel}</button>
     </div>

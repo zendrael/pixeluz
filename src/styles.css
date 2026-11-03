@@ -216,6 +216,42 @@ body {
   cursor: pointer;
 }
 
+.prop-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.prop-row {
+  display: grid;
+  grid-template-columns: minmax(5.5rem, max-content) minmax(0, 1fr);
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+}
+
+.prop-label {
+  text-align: left;
+  font-size: 0.875rem;
+  line-height: 1.2;
+}
+
+.prop-value {
+  min-width: 0;
+  justify-self: start;
+  width: 100%;
+}
+
+.prop-value .form-select,
+.prop-value .form-control:not(.form-control-color):not(.prop-number) {
+  width: 100%;
+  max-width: 12rem;
+}
+
+.prop-number {
+  width: 4.5rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pixeluz-app .btn,
   .pixeluz-sheet {
