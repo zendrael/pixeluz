@@ -74,7 +74,7 @@ body {
   flex: 0 0 auto;
 }
 
-.tool-rail .tool-btn,
+.tool-host .tool-btn,
 .header-actions .btn {
   --bs-btn-border-color: transparent;
   --bs-btn-hover-border-color: transparent;
