@@ -4,8 +4,12 @@ import { createImage } from "../domain/image-buffer";
 import { MAX_SPRITE_SIZE, MIN_FRAME_MS, MIN_SPRITE_SIZE } from "../domain/limits";
 import { luma } from "../domain/color";
 import { createCel } from "../domain/sprite";
-import type { BlendMode, Cel, ColorMode, Layer, LayerKind, LoopDirection, Rgba, SpriteDocument } from "../domain/types";
+import { gridShape } from "../domain/tiles";
+import type { BlendMode, Cel, ColorMode, Layer, LayerKind, LoopDirection, Rgba, SpriteDocument, Tileset } from "../domain/types";
 import { zlibInflate, zlibStore } from "./zlib";
+
+const TILE_ID_MASK = 0x1fffffff;
+const TILESET_CHUNK = 0x2023;
 
 const ASE_MAGIC = 0xa5e0;
 const FRAME_MAGIC = 0xf1fa;
@@ -88,13 +92,20 @@ export function writeAse(doc: SpriteDocument): Uint8Array {
     if (frameIndex === 0) {
       doc.layers.forEach((layer) => chunks.push(layerChunk(doc, layer)));
       chunks.push(paletteChunk(filePalette.colors));
+      doc.tilesets.forEach((tileset, index) => chunks.push(tilesetChunk(tileset, index, doc.colorMode, filePalette)));
       if (doc.tags.length > 0) chunks.push(tagsChunk(doc));
     }
     for (const cel of doc.cels) {
       if (cel.frameId !== frame.id) continue;
       const layerIndex = doc.layers.findIndex((layer) => layer.id === cel.layerId);
       const layer = doc.layers[layerIndex];
-      if (!layer || layer.kind === "group" || layer.kind === "tilemap") continue;
+      if (!layer || layer.kind === "group") continue;
+      if (layer.kind === "tilemap") {
+        const tileset = doc.tilesets.find((item) => item.id === layer.tilesetId);
+        if (!tileset) continue;
+        chunks.push(tilemapCelChunk(doc, cel, layerIndex, tileset));
+        continue;
+      }
       const linkKey = cel.linkId ? `${cel.layerId}:${cel.linkId}` : "";
       const anchor = linkKey ? anchors.get(linkKey) : undefined;
       if (linkKey && anchor === undefined) anchors.set(linkKey, frameIndex);
@@ -129,8 +140,10 @@ export async function readAse(bytes: Uint8Array): Promise<SpriteDocument> {
   };
   const layers: Layer[] = [];
   const groupAt: Array<string | null> = [];
+  const layerTilesetIndex: number[] = [];
   const frames: SpriteDocument["frames"] = [];
   const tags: SpriteDocument["tags"] = [];
+  const tilesets: Tileset[] = [];
   let palette: Rgba[] = [{ ...BLACK }];
   let sawNewPalette = false;
   const rawCels: RawCel[] = [];
@@ -151,7 +164,8 @@ export async function readAse(bytes: Uint8Array): Promise<SpriteDocument> {
       const type = view.getUint16(cursor + 4, true);
       if (size < 6 || cursor + size > bytes.length) throw new Error("Arquivo ASE inválido");
       const data = bytes.subarray(cursor + 6, cursor + size);
-      if (type === 0x2004) readLayer(data, layers, groupAt, (headerFlags & 1) !== 0);
+      if (type === 0x2004) readLayer(data, layers, groupAt, layerTilesetIndex, (headerFlags & 1) !== 0);
+      else if (type === TILESET_CHUNK) tilesets.push(await readTileset(data, colorMode, palette, transparentIndex));
       else if (type === 0x2019) {
         palette = readNewPalette(data);
         sawNewPalette = true;
@@ -175,7 +189,12 @@ export async function readAse(bytes: Uint8Array): Promise<SpriteDocument> {
       parentId: null,
     });
   }
-  const cels = materializeCels(rawCels, layers, frames, width, height);
+  layers.forEach((layer, index) => {
+    if (layer.kind !== "tilemap") return;
+    const tileset = tilesets[layerTilesetIndex[index] ?? 0];
+    if (tileset) layer.tilesetId = tileset.id;
+  });
+  const cels = materializeCels(rawCels, layers, frames, width, height, tilesets);
   return {
     id: createId(),
     name: "Sem título",
@@ -188,7 +207,7 @@ export async function readAse(bytes: Uint8Array): Promise<SpriteDocument> {
     cels,
     tags,
     slices: [],
-    tilesets: [],
+    tilesets,
     grid,
   };
 }
@@ -208,6 +227,7 @@ interface RawCel {
   height: number;
   rgba: Uint8ClampedArray | null;
   linkFrame: number | null;
+  tiles?: number[];
 }
 
 function asePalette(doc: SpriteDocument): FilePalette {
@@ -234,8 +254,68 @@ function layerChunk(doc: SpriteDocument, layer: Layer): Uint8Array {
   body.u8(layer.opacity);
   body.zeros(3);
   body.string(layer.name);
-  if (layer.kind === "tilemap") body.u32(0);
+  if (layer.kind === "tilemap") {
+    const tilesetIndex = doc.tilesets.findIndex((item) => item.id === layer.tilesetId);
+    body.u32(Math.max(0, tilesetIndex));
+  }
   return wrapChunk(0x2004, body);
+}
+
+function tilesetChunk(tileset: Tileset, id: number, mode: ColorMode, palette: FilePalette): Uint8Array {
+  const body = new Buf();
+  body.u32(id);
+  body.u32(2 | 4);
+  body.u32(tileset.tiles.length);
+  body.u16(tileset.tileWidth);
+  body.u16(tileset.tileHeight);
+  body.i16(1);
+  body.zeros(14);
+  body.string(tileset.name);
+  const pixels = stackTiles(tileset, mode, palette);
+  const packed = zlibStore(pixels);
+  body.u32(packed.length);
+  body.bytes(packed);
+  return wrapChunk(TILESET_CHUNK, body);
+}
+
+function stackTiles(tileset: Tileset, mode: ColorMode, palette: FilePalette): Uint8Array {
+  const tilePixels = tileset.tileWidth * tileset.tileHeight;
+  const parts = tileset.tiles.map((tile) => {
+    const cel: Cel = { layerId: "", frameId: "", image: tile, x: 0, y: 0, opacity: 255 };
+    return pixelBytes({ colorMode: mode } as SpriteDocument, cel, palette);
+  });
+  const bytesPerTile = mode === "indexed" ? tilePixels : mode === "grayscale" ? tilePixels * 2 : tilePixels * 4;
+  const out = new Uint8Array(bytesPerTile * tileset.tiles.length);
+  parts.forEach((part, index) => out.set(part.subarray(0, bytesPerTile), index * bytesPerTile));
+  return out;
+}
+
+function tilemapCelChunk(doc: SpriteDocument, cel: Cel, layerIndex: number, tileset: Tileset): Uint8Array {
+  const shape = gridShape(doc.width, doc.height, tileset);
+  const tiles = cel.tiles ?? new Array<number>(shape.cols * shape.rows).fill(0);
+  const body = new Buf();
+  body.u16(layerIndex);
+  body.i16(cel.x);
+  body.i16(cel.y);
+  body.u8(cel.opacity);
+  body.u16(3);
+  body.i16(0);
+  body.zeros(5);
+  body.u16(shape.cols);
+  body.u16(shape.rows);
+  body.u16(32);
+  body.u32(TILE_ID_MASK);
+  body.u32(0);
+  body.u32(0);
+  body.u32(0);
+  body.zeros(10);
+  const raw = new Uint8Array(shape.cols * shape.rows * 4);
+  const view = new DataView(raw.buffer);
+  for (let index = 0; index < shape.cols * shape.rows; index += 1) {
+    view.setUint32(index * 4, (tiles[index] ?? 0) & TILE_ID_MASK, true);
+  }
+  body.bytes(zlibStore(raw));
+  return wrapChunk(0x2005, body);
 }
 
 function paletteChunk(colors: Rgba[]): Uint8Array {
@@ -336,7 +416,13 @@ function writeFrame(buf: Buf, duration: number, chunks: Uint8Array[]): void {
   for (const chunk of chunks) buf.bytes(chunk);
 }
 
-function readLayer(data: Uint8Array, layers: Layer[], groupAt: Array<string | null>, opacityValid: boolean): void {
+function readLayer(
+  data: Uint8Array,
+  layers: Layer[],
+  groupAt: Array<string | null>,
+  layerTilesetIndex: number[],
+  opacityValid: boolean,
+): void {
   const cursor = new Cursor(data);
   const flags = cursor.u16();
   const type = cursor.u16();
@@ -347,12 +433,14 @@ function readLayer(data: Uint8Array, layers: Layer[], groupAt: Array<string | nu
   cursor.skip(3);
   const name = cursor.string();
   const kind: LayerKind = type === 1 ? "group" : type === 2 ? "tilemap" : flags & 64 ? "reference" : "image";
+  const tilesetIndex = kind === "tilemap" ? cursor.u32() : 0;
   const id = createId();
   const parentId = level === 0 ? null : (groupAt[level - 1] ?? null);
   if (kind === "group") {
     groupAt[level] = id;
     groupAt.length = level + 1;
   }
+  layerTilesetIndex.push(tilesetIndex);
   layers.push({
     id,
     name: name || `Camada ${layers.length + 1}`,
@@ -363,6 +451,37 @@ function readLayer(data: Uint8Array, layers: Layer[], groupAt: Array<string | nu
     locked: (flags & 2) === 0,
     parentId,
   });
+}
+
+async function readTileset(data: Uint8Array, mode: ColorMode, palette: Rgba[], transparentIndex: number): Promise<Tileset> {
+  const cursor = new Cursor(data);
+  cursor.u32();
+  const flags = cursor.u32();
+  const count = cursor.u32();
+  const tileWidth = Math.max(1, cursor.u16());
+  const tileHeight = Math.max(1, cursor.u16());
+  cursor.i16();
+  cursor.skip(14);
+  const name = cursor.string() || "Tileset";
+  if (flags & 1) {
+    cursor.u32();
+    cursor.u32();
+  }
+  const tiles: ReturnType<typeof createImage>[] = [];
+  if (flags & 2) {
+    const length = cursor.u32();
+    const packed = await zlibInflate(cursor.rest().subarray(0, length));
+    const bytesPerTile = mode === "indexed" ? tileWidth * tileHeight : mode === "grayscale" ? tileWidth * tileHeight * 2 : tileWidth * tileHeight * 4;
+    for (let index = 0; index < count; index += 1) {
+      const slice = packed.subarray(index * bytesPerTile, (index + 1) * bytesPerTile);
+      const rgba = pixelsToRgba(slice, tileWidth, tileHeight, mode, palette, transparentIndex);
+      const image = createImage(tileWidth, tileHeight);
+      image.data.set(rgba);
+      tiles.push(image);
+    }
+  }
+  while (tiles.length < Math.max(1, count)) tiles.push(createImage(tileWidth, tileHeight));
+  return { id: createId(), name, tileWidth, tileHeight, tiles };
 }
 
 function readNewPalette(data: Uint8Array): Rgba[] {
@@ -438,6 +557,27 @@ async function readCel(
   if (type === 1) {
     return { layerIndex, frameIndex, x, y, opacity, width: 0, height: 0, rgba: null, linkFrame: cursor.u16() };
   }
+  if (type === 3) {
+    const cols = cursor.u16();
+    const rows = cursor.u16();
+    const bits = cursor.u16();
+    const idMask = cursor.u32() || TILE_ID_MASK;
+    cursor.u32();
+    cursor.u32();
+    cursor.u32();
+    cursor.skip(10);
+    const packed = await zlibInflate(cursor.rest());
+    const tiles: number[] = [];
+    const view = new DataView(packed.buffer, packed.byteOffset, packed.byteLength);
+    const stride = bits <= 8 ? 1 : bits <= 16 ? 2 : 4;
+    for (let index = 0; index < cols * rows; index += 1) {
+      const offset = index * stride;
+      const value =
+        stride === 1 ? (packed[offset] ?? 0) : stride === 2 ? view.getUint16(offset, true) : view.getUint32(offset, true);
+      tiles.push(value & idMask);
+    }
+    return { layerIndex, frameIndex, x, y, opacity, width: cols, height: rows, rgba: null, linkFrame: null, tiles };
+  }
   if (type !== 0 && type !== 2) {
     return { layerIndex, frameIndex, x, y, opacity, width: 0, height: 0, rgba: null, linkFrame: null };
   }
@@ -483,13 +623,28 @@ function pixelsToRgba(data: Uint8Array, width: number, height: number, mode: Col
   return rgba;
 }
 
-function materializeCels(rawCels: RawCel[], layers: Layer[], frames: SpriteDocument["frames"], width: number, height: number): Cel[] {
-  const placed = new Map<string, { image: ReturnType<typeof createImage>; linkId?: string }>();
+function materializeCels(
+  rawCels: RawCel[],
+  layers: Layer[],
+  frames: SpriteDocument["frames"],
+  width: number,
+  height: number,
+  tilesets: Tileset[],
+): Cel[] {
+  const placed = new Map<string, { image: ReturnType<typeof createImage>; linkId?: string; tiles?: number[] }>();
   for (const raw of rawCels) {
-    if (raw.linkFrame !== null || !raw.rgba) continue;
+    if (raw.linkFrame !== null) continue;
     const layer = layers[raw.layerIndex];
     const frame = frames[raw.frameIndex];
-    if (!layer || !frame || layer.kind === "group" || layer.kind === "tilemap") continue;
+    if (!layer || !frame || layer.kind === "group") continue;
+    if (layer.kind === "tilemap") {
+      const tileset = tilesets.find((item) => item.id === layer.tilesetId) ?? tilesets[0];
+      const shape = tileset ? gridShape(width, height, tileset) : { cols: raw.width, rows: raw.height };
+      const tiles = raw.tiles ?? new Array<number>(shape.cols * shape.rows).fill(0);
+      placed.set(key(raw.layerIndex, raw.frameIndex), { image: createImage(width, height), tiles });
+      continue;
+    }
+    if (!raw.rgba) continue;
     placed.set(key(raw.layerIndex, raw.frameIndex), { image: expand(width, height, raw) });
   }
   for (const raw of rawCels) {
@@ -518,12 +673,19 @@ function materializeCels(rawCels: RawCel[], layers: Layer[], frames: SpriteDocum
     cel.image = record.image;
     cel.opacity = raw?.opacity ?? 255;
     if (record.linkId) cel.linkId = record.linkId;
+    if (record.tiles) cel.tiles = record.tiles;
     cels.push(cel);
   }
   for (const layer of layers) {
-    if (layer.kind === "group" || layer.kind === "tilemap") continue;
+    if (layer.kind === "group") continue;
     for (const frame of frames) {
-      if (!cels.some((cel) => cel.layerId === layer.id && cel.frameId === frame.id)) cels.push(createCel(layer.id, frame.id, width, height));
+      if (cels.some((cel) => cel.layerId === layer.id && cel.frameId === frame.id)) continue;
+      const cel = createCel(layer.id, frame.id, width, height);
+      if (layer.kind === "tilemap") {
+        const tileset = tilesets.find((item) => item.id === layer.tilesetId) ?? tilesets[0];
+        if (tileset) cel.tiles = new Array<number>(gridShape(width, height, tileset).cols * gridShape(width, height, tileset).rows).fill(0);
+      }
+      cels.push(cel);
     }
   }
   return cels;

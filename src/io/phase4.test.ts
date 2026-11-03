@@ -93,6 +93,52 @@ describe("phase 4", () => {
     expect(new TextDecoder().decode(zip)).toContain("heroi.png");
   });
 
+  it("roundtrips an aseprite tilemap with tileset pixels and indices", async () => {
+    const doc = createSprite(32, 32, "Tiles");
+    doc.grid = { width: 16, height: 16, x: 0, y: 0 };
+    const tilesetId = "tileset-1";
+    const blank = createImage(16, 16);
+    const solid = createImage(16, 16);
+    for (let index = 0; index < solid.data.length; index += 4) {
+      solid.data[index] = 255;
+      solid.data[index + 1] = 0;
+      solid.data[index + 2] = 0;
+      solid.data[index + 3] = 255;
+    }
+    setPixel(solid, 0, 0, blue);
+    doc.tilesets = [{ id: tilesetId, name: "Chão", tileWidth: 16, tileHeight: 16, tiles: [blank, solid] }];
+    const layerId = "tile-layer";
+    doc.layers.push({
+      id: layerId,
+      name: "Mapa",
+      kind: "tilemap",
+      opacity: 255,
+      blendMode: "normal",
+      visible: true,
+      locked: false,
+      parentId: null,
+      tilesetId,
+    });
+    doc.cels.push({
+      layerId,
+      frameId: doc.frames[0]!.id,
+      image: createImage(32, 32),
+      x: 0,
+      y: 0,
+      opacity: 255,
+      tiles: [1, 0, 0, 1],
+    });
+    const loaded = await readAse(writeAse(doc));
+    expect(loaded.tilesets).toHaveLength(1);
+    expect(loaded.tilesets[0]).toMatchObject({ name: "Chão", tileWidth: 16, tileHeight: 16 });
+    expect(loaded.tilesets[0]?.tiles).toHaveLength(2);
+    expect(getPixel(loaded.tilesets[0]!.tiles[1]!, 0, 0)).toEqual(blue);
+    const map = loaded.layers.find((layer) => layer.kind === "tilemap");
+    expect(map?.tilesetId).toBe(loaded.tilesets[0]?.id);
+    const cel = loaded.cels.find((item) => item.layerId === map?.id && item.frameId === loaded.frames[0]?.id);
+    expect(cel?.tiles).toEqual([1, 0, 0, 1]);
+  });
+
   it("roundtrips an aseprite file with a group and a tag", async () => {
     const doc = createSprite(2, 2, "Herói");
     const image = doc.layers[0]!;

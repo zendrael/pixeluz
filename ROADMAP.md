@@ -70,7 +70,7 @@ Cada item vira um `.scratch/<slug>/spec.md` antes do código. As costuras novas 
 1. **Caneta: opacidade estável** — feito (ADR-0002, costura Caneta).
 2. **Costura Armazenamento** — feito (`src/storage/db.test.ts`).
 3. **Blend modes parametrizados** — feito (`composite.test.ts`).
-4. **ASE tilemap** — ida e volta de tileset e cel de índices.
+4. **ASE tilemap** — feito (`writeAse` / `readAse` com chunk 0x2023).
 5. **Clipboard entre abas** — colar a seleção em outra `EditorSession`.
 6. **Vídeo por tag** — exportar só a faixa da tag ativa.
 7. **Camada travada** — recusar pintura, cola e transform na camada `locked`.
