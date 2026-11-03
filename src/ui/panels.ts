@@ -117,7 +117,7 @@ export function renderTabs(host: HTMLElement, tabs: Array<{ name: string; dirty:
       return `<div class="btn-group"><button type="button" class="btn btn-sm text-truncate${active}" style="max-width:9rem" data-tab="${index}">${escapeHtml(tab.name)}${mark}</button><button type="button" class="btn btn-sm btn-outline-secondary" data-action="close-tab" data-tab="${index}" aria-label="${text.closeTab}"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>`;
     })
     .join("");
-  host.innerHTML = `${buttons}<button type="button" class="btn btn-sm btn-outline-secondary" data-action="add-tab" aria-label="${text.addTab}"><i class="fa-solid fa-plus" aria-hidden="true"></i></button>`;
+  host.innerHTML = `${buttons}<button type="button" class="btn btn-sm doc-tab-add" data-action="add-tab" aria-label="${text.addTab}"><i class="fa-solid fa-plus" aria-hidden="true"></i></button>`;
 }
 
 export function renderFrames(hosts: HTMLElement[], doc: SpriteDocument, activeIndex: number): void {

@@ -241,7 +241,7 @@ export function mountShell(root: HTMLElement): void {
         ${iconButton("settings", "fa-gear", text.settings, "btn-settings")}
       </div>
     </header>
-    <div id="doc-tabs" class="doc-tabs d-flex align-items-center gap-1 overflow-auto border-bottom bg-body px-2 py-1"></div>
+    <div id="doc-tabs" class="doc-tabs d-flex align-items-center gap-1 overflow-auto border-bottom bg-body px-2"></div>
     ${optionsBar()}
     <div class="workspace d-flex flex-grow-1 min-h-0">
       <nav class="tool-rail tool-host d-none d-lg-flex flex-column gap-1 border-end bg-body p-1" aria-label="${text.tools}"></nav>

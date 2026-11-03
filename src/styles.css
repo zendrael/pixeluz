@@ -25,6 +25,19 @@ body {
   min-width: 6rem;
 }
 
+.doc-tabs {
+  min-height: 2.75rem;
+  padding-block: 0.4rem;
+}
+
+.doc-tabs .doc-tab-add {
+  --bs-btn-border-color: transparent;
+  --bs-btn-hover-border-color: transparent;
+  --bs-btn-active-border-color: transparent;
+  --bs-btn-disabled-border-color: transparent;
+  box-shadow: none;
+}
+
 .workspace,
 .viewport-host,
 .side-panel {
