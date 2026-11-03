@@ -132,7 +132,11 @@ async function drawAndReload(page) {
 try {
   await waitForPreview();
   const browser = await chromium.launch({ executablePath: chrome, headless: true });
-  const desktop = await browser.newContext({ viewport: { width: 1280, height: 800 }, acceptDownloads: true });
+  const desktop = await browser.newContext({
+    viewport: { width: 1280, height: 800 },
+    acceptDownloads: true,
+    locale: "pt-BR",
+  });
   const page = await desktop.newPage();
   page.on("pageerror", (error) => errors.push(String(error)));
   await editorReady(page);
@@ -195,7 +199,11 @@ try {
   if (!offline.includes("ainda não está disponível offline")) fail("a página offline não apareceu");
   await desktop.setOffline(false);
 
-  const mobile = await browser.newContext({ viewport: { width: 390, height: 800 }, acceptDownloads: true });
+  const mobile = await browser.newContext({
+    viewport: { width: 390, height: 800 },
+    acceptDownloads: true,
+    locale: "pt-BR",
+  });
   const phone = await mobile.newPage();
   phone.on("pageerror", (error) => errors.push(String(error)));
   await editorReady(phone);

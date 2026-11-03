@@ -177,11 +177,20 @@ describe("fase 5", () => {
     expect(session.copySelection()).toBe(true);
     layer.locked = true;
     expect(session.pasteClipboard()).toBe(false);
-    session.transformSelection("flip-x");
+    session.transformSelection("flip-h");
     expect(getPixel(cel.image, 0, 0)).toEqual(red);
     expect(session.canUndo).toBe(false);
 
-    session.applyFilter("invert", {});
+    session.applyFilter("invert", {
+      brightness: 0,
+      contrast: 0,
+      hue: 0,
+      saturation: 0,
+      outline: red,
+      from: red,
+      to: clear,
+      tolerance: 0,
+    });
     expect(getPixel(cel.image, 0, 0)).toEqual(red);
     expect(session.canUndo).toBe(false);
   });

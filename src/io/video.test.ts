@@ -43,8 +43,8 @@ describe("vídeo", () => {
 
   it("prepara só a faixa da tag ativa e inverte se a tag for reverse", () => {
     const session = new EditorSession(createSprite(1, 1));
-    session.addFrame();
-    session.addFrame();
+    session.addFrame(true);
+    session.addFrame(true);
     session.doc.frames[0]!.durationMs = 40;
     session.doc.frames[1]!.durationMs = 80;
     session.doc.frames[2]!.durationMs = 120;
