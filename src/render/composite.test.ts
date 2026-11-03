@@ -2,9 +2,60 @@ import { describe, expect, it } from "vitest";
 import { createImage, setPixel } from "../domain/image-buffer";
 import { createSprite } from "../domain/factory";
 import { findCel } from "../domain/sprite";
+import type { BlendMode, Rgba } from "../domain/types";
 import { compositeFrame, readPixel } from "./composite";
 
+/** Blue over red, both opaque. Literals from the channel/HSL formulas, not from blendRgb. */
+const BLEND_CASES: Array<{ mode: BlendMode; rgb: Rgba }> = [
+  { mode: "normal", rgb: { r: 0, g: 0, b: 255, a: 255 } },
+  { mode: "darken", rgb: { r: 0, g: 0, b: 0, a: 255 } },
+  { mode: "multiply", rgb: { r: 0, g: 0, b: 0, a: 255 } },
+  { mode: "color-burn", rgb: { r: 0, g: 0, b: 0, a: 255 } },
+  { mode: "lighten", rgb: { r: 255, g: 0, b: 255, a: 255 } },
+  { mode: "screen", rgb: { r: 255, g: 0, b: 255, a: 255 } },
+  { mode: "color-dodge", rgb: { r: 255, g: 0, b: 255, a: 255 } },
+  { mode: "addition", rgb: { r: 255, g: 0, b: 255, a: 255 } },
+  { mode: "overlay", rgb: { r: 255, g: 0, b: 0, a: 255 } },
+  { mode: "soft-light", rgb: { r: 255, g: 0, b: 0, a: 255 } },
+  { mode: "hard-light", rgb: { r: 0, g: 0, b: 255, a: 255 } },
+  { mode: "difference", rgb: { r: 255, g: 0, b: 255, a: 255 } },
+  { mode: "exclusion", rgb: { r: 255, g: 0, b: 255, a: 255 } },
+  { mode: "subtract", rgb: { r: 255, g: 0, b: 0, a: 255 } },
+  { mode: "divide", rgb: { r: 255, g: 255, b: 0, a: 255 } },
+  { mode: "hue", rgb: { r: 0, g: 0, b: 255, a: 255 } },
+  { mode: "saturation", rgb: { r: 255, g: 0, b: 0, a: 255 } },
+  { mode: "color", rgb: { r: 0, g: 0, b: 255, a: 255 } },
+  { mode: "luminosity", rgb: { r: 255, g: 0, b: 0, a: 255 } },
+];
+
+function blendDoc(mode: BlendMode) {
+  const doc = createSprite(1, 1, "blend");
+  const frameId = doc.frames[0]!;
+  const bottom = findCel(doc, doc.layers[0]!.id, frameId.id);
+  if (!bottom) throw new Error("cel ausente");
+  setPixel(bottom.image, 0, 0, { r: 255, g: 0, b: 0, a: 255 });
+  doc.layers.push({
+    id: "top",
+    name: "Topo",
+    kind: "image",
+    opacity: 255,
+    blendMode: mode,
+    visible: true,
+    locked: false,
+    parentId: null,
+  });
+  const top = createImage(1, 1);
+  setPixel(top, 0, 0, { r: 0, g: 0, b: 255, a: 255 });
+  doc.cels.push({ layerId: "top", frameId: frameId.id, image: top, x: 0, y: 0, opacity: 255 });
+  return { doc, frameId: frameId.id };
+}
+
 describe("composite", () => {
+  it.each(BLEND_CASES)("aplica $mode sobre vermelho opaco", ({ mode, rgb }) => {
+    const { doc, frameId } = blendDoc(mode);
+    expect(readPixel(compositeFrame(doc, frameId), 0, 0)).toEqual(rgb);
+  });
+
   it("stacks image layers and skips reference and hidden layers", () => {
     const doc = createSprite(3, 2, "composite");
     const bottom = doc.layers[0]!;
