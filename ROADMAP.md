@@ -73,4 +73,4 @@ Cada item vira um `.scratch/<slug>/spec.md` antes do código. As costuras novas 
 4. **ASE tilemap** — feito (`writeAse` / `readAse` com chunk 0x2023).
 5. **Clipboard entre abas** — feito (`selection-clipboard` compartilhado).
 6. **Vídeo por tag** — feito (`exportAnimation({ tagRange: true })`).
-7. **Camada travada** — recusar pintura, cola e transform na camada `locked`.
+7. **Camada travada** — feito (`commitPixels` / cola / transform / filtro / tilemap).

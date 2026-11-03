@@ -159,6 +159,33 @@ describe("fase 5", () => {
     expect(target && getPixel(target.image, 1, 1)).toEqual(clear);
   });
 
+  it("recusa pintura, cola e transform numa camada travada", () => {
+    const session = new EditorSession(createSprite(4, 4));
+    const layer = session.doc.layers[0]!;
+    const cel = findCel(session.doc, layer.id, session.activeFrameId);
+    if (!cel) throw new Error("cel ausente");
+    setPixel(cel.image, 0, 0, red);
+    layer.locked = true;
+    session.commitPixels(layer.id, session.activeFrameId, [{ x: 1, y: 1, before: clear, after: red }], false);
+    expect(getPixel(cel.image, 1, 1)).toEqual(clear);
+    expect(session.canUndo).toBe(false);
+
+    const mask = new Uint8Array(16);
+    mask[0] = 1;
+    session.setSelection(mask);
+    layer.locked = false;
+    expect(session.copySelection()).toBe(true);
+    layer.locked = true;
+    expect(session.pasteClipboard()).toBe(false);
+    session.transformSelection("flip-x");
+    expect(getPixel(cel.image, 0, 0)).toEqual(red);
+    expect(session.canUndo).toBe(false);
+
+    session.applyFilter("invert", {});
+    expect(getPixel(cel.image, 0, 0)).toEqual(red);
+    expect(session.canUndo).toBe(false);
+  });
+
   it("cola a seleção copiada noutra aba e desfaz só nela", () => {
     const sourceSession = new EditorSession(createSprite(4, 4, "A"));
     const targetSession = new EditorSession(createSprite(4, 4, "B"));

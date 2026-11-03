@@ -182,8 +182,9 @@ export class EditorSession implements EditorApi {
   }
 
   applyFilter(kind: FilterKind, options: FilterOptions): void {
+    const layer = findLayer(this.doc, this.activeLayerId);
     const cel = this.activeCel();
-    if (!cel) return;
+    if (!layer || layer.locked || !cel) return;
     const next = filterPixels(cel.image, this.selection, kind, options);
     if (samePixels(cel.image.data, next)) return;
     this.run(new FilterCelCommand(cel.layerId, cel.frameId, next));
@@ -200,6 +201,16 @@ export class EditorSession implements EditorApi {
   }
 
   commitPixels(layerId: string, frameId: string, changes: PixelChange[], alreadyApplied: boolean): void {
+    const layer = findLayer(this.doc, layerId);
+    if (!layer || layer.locked) {
+      if (alreadyApplied && changes.length > 0) {
+        const cel = findCel(this.doc, layerId, frameId);
+        if (cel) for (const change of changes) setPixel(cel.image, change.x, change.y, change.before);
+      }
+      this.cache = null;
+      this.emit("canvas");
+      return;
+    }
     if (changes.length === 0) {
       this.cache = null;
       this.emit("canvas");
@@ -997,7 +1008,7 @@ export class EditorSession implements EditorApi {
   private tileContext() {
     const frame = this.doc.frames[this.activeFrameIndex];
     const layer = findLayer(this.doc, this.activeLayerId);
-    if (!frame || layer?.kind !== "tilemap" || !layer.tilesetId) return null;
+    if (!frame || layer?.kind !== "tilemap" || layer.locked || !layer.visible || !layer.tilesetId) return null;
     const tileset = this.doc.tilesets.find((item) => item.id === layer.tilesetId);
     const cel = findCel(this.doc, layer.id, frame.id);
     if (!tileset || !cel) return null;

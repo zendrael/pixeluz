@@ -46,7 +46,7 @@ Teste na interface pública da costura. Um teste novo numa costura que não est�
 | Painel | `clampPanelLayout`, `timelineLimit`, `panelSnapTarget`, `optionGroupsFor` | teto, recolhimento e opções da ferramenta ativa | arraste real |
 | Atalho | `matchShortcut` | acorde para ação, inclusive copiar e colar | foco do input |
 | Idioma | `preferredLocale` | escolha salva, português e espanhol do navegador, inglês nos demais | `navigator` real |
-| Sessão | `EditorSession` | grade, tile, texto, RotSprite, copiar e colar a seleção, undo | layout Bootstrap |
+| Sessão | `EditorSession` | grade, tile, texto, RotSprite, copiar e colar a seleção (inclusive entre abas), camada travada, undo | layout Bootstrap |
 | Atualização | `beginUpdate` | aviso, gravação e um único recarregamento | service worker e rede |
 | Interface | o app no browser | o fluxo que o usuário vê | lógica já coberta acima |
 
