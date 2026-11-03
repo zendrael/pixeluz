@@ -659,7 +659,7 @@ export class Controller {
     if (scale !== 1 && scale !== 2 && scale !== 4 && scale !== 8) return;
     const name = safeFilename(this.session.doc.name);
     try {
-      const encoded = await encodeAnimation(this.session.exportAnimation(), {
+      const encoded = await encodeAnimation(this.session.exportAnimation({ tagRange: true }), {
         scale,
         background: this.session.background,
       });

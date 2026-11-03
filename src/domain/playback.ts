@@ -20,6 +20,14 @@ export function playbackBounds(doc: SpriteDocument, index: number): { from: numb
   };
 }
 
+export function framesInPlaybackOrder<T>(frames: T[], from: number, to: number, direction: LoopDirection): T[] {
+  const start = Math.max(0, Math.min(from, to));
+  const end = Math.min(frames.length - 1, Math.max(from, to));
+  if (frames.length === 0 || start > end) return [];
+  const slice = frames.slice(start, end + 1);
+  return direction === "reverse" ? slice.reverse() : slice;
+}
+
 export function stepPlayback(index: number, from: number, to: number, direction: LoopDirection, ping: 1 | -1): PlaybackStep {
   if (from === to) return { index: from, ping: 1 };
   if (direction === "forward") return { index: index >= to ? from : index + 1, ping: 1 };

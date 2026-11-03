@@ -72,5 +72,5 @@ Cada item vira um `.scratch/<slug>/spec.md` antes do código. As costuras novas 
 3. **Blend modes parametrizados** — feito (`composite.test.ts`).
 4. **ASE tilemap** — feito (`writeAse` / `readAse` com chunk 0x2023).
 5. **Clipboard entre abas** — feito (`selection-clipboard` compartilhado).
-6. **Vídeo por tag** — exportar só a faixa da tag ativa.
+6. **Vídeo por tag** — feito (`exportAnimation({ tagRange: true })`).
 7. **Camada travada** — recusar pintura, cola e transform na camada `locked`.

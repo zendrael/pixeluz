@@ -41,7 +41,7 @@ import { createId } from "../domain/ids";
 import { textDots } from "../domain/bitmap-font";
 import { createImage, diffSnapshot, getPixel, setPixel } from "../domain/image-buffer";
 import { MAX_BRUSH_SIZE, MAX_FRAME_MS, MAX_LAYERS, MAX_SPRITE_SIZE, MAX_ZOOM, MIN_FRAME_MS, MIN_SPRITE_SIZE, MIN_ZOOM, gridCell } from "../domain/limits";
-import { playbackBounds, stepPlayback } from "../domain/playback";
+import { framesInPlaybackOrder, playbackBounds, stepPlayback } from "../domain/playback";
 import { rotsprite } from "../domain/rotsprite";
 import { maskBounds } from "../domain/selection";
 import { editSelection, type SelectionOp } from "../domain/selection-edit";
@@ -189,11 +189,14 @@ export class EditorSession implements EditorApi {
     this.run(new FilterCelCommand(cel.layerId, cel.frameId, next));
   }
 
-  exportAnimation(): Array<{ image: ImageBuffer; durationMs: number }> {
-    return this.doc.frames.map((frame) => ({
+  exportAnimation(options: { tagRange?: boolean } = {}): Array<{ image: ImageBuffer; durationMs: number }> {
+    const frames = this.doc.frames.map((frame) => ({
       image: compositeFrame(this.doc, frame.id),
       durationMs: frame.durationMs,
     }));
+    if (!options.tagRange) return frames;
+    const bounds = playbackBounds(this.doc, this.activeFrameIndex);
+    return framesInPlaybackOrder(frames, bounds.from, bounds.to, bounds.direction);
   }
 
   commitPixels(layerId: string, frameId: string, changes: PixelChange[], alreadyApplied: boolean): void {
