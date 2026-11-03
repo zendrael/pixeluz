@@ -51,6 +51,7 @@ import type { BlendMode, ColorMode, ImageBuffer, Layer, LayerKind, PixelChange, 
 import { compositeFrame } from "../render/composite";
 import type { EditorApi } from "../tools/tool";
 import type { Command } from "../commands/command";
+import { getSelectionClipboard, setSelectionClipboard } from "./selection-clipboard";
 
 export type ChangeKind = "canvas" | "chrome" | "document";
 
@@ -77,7 +78,6 @@ export class EditorSession implements EditorApi {
   bayer: BayerSize = 4;
   selectMode: SelectMode = "replace";
   selection: Uint8Array | null = null;
-  clipboard: { image: ImageBuffer; mask: Uint8Array; x: number; y: number } | null = null;
   onionBefore = 0;
   onionAfter = 0;
   tileDrawMode: TileDrawMode = "tiles";
@@ -765,13 +765,13 @@ export class EditorSession implements EditorApi {
       }
     }
     if (!clip.some((bit) => bit === 1)) return false;
-    this.clipboard = { image, mask: clip, x: bounds.minX, y: bounds.minY };
+    setSelectionClipboard({ image, mask: clip, x: bounds.minX, y: bounds.minY });
     this.emit("chrome");
     return true;
   }
 
   pasteClipboard(): boolean {
-    const clip = this.clipboard;
+    const clip = getSelectionClipboard();
     const layer = findLayer(this.doc, this.activeLayerId);
     if (!clip || !layer || (layer.kind !== "image" && layer.kind !== "reference") || !layer.visible || layer.locked) return false;
     const cel = findCel(this.doc, this.activeLayerId, this.activeFrameId);
@@ -941,7 +941,6 @@ export class EditorSession implements EditorApi {
     this.activeLayerId = doc.layers.find((layer) => layer.kind === "image")?.id ?? doc.layers[0]?.id ?? "";
     this.preview = null;
     this.selection = null;
-    this.clipboard = null;
     this.cache = null;
     this.edits = 0;
     this.exportedEdit = -1;
@@ -1021,7 +1020,6 @@ export class EditorSession implements EditorApi {
     if (width === this.doc.width && height === this.doc.height && dx === 0 && dy === 0) return;
     this.run(new ResizeCanvasCommand(width, height, dx, dy));
     this.selection = null;
-    this.clipboard = null;
     this.invalidateCanvas();
   }
 
