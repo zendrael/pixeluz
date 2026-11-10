@@ -49,8 +49,31 @@ export const OPEN_FILE_TYPES: FilePickerType[] = [
 ];
 
 export const PALETTE_FILE_TYPES: FilePickerType[] = [
-  { description: "Paleta", accept: { "text/plain": [".hex", ".gpl", ".txt"], "application/json": [".json"] } },
+  {
+    description: "Paleta",
+    accept: {
+      "text/plain": [".hex", ".gpl", ".txt"],
+      "application/json": [".json"],
+      // Android Downloads often tags Lospec .hex as octet-stream, not text/plain.
+      "application/octet-stream": [".hex", ".gpl", ".txt"],
+    },
+  },
 ];
+
+export function fileInputAccept(types: FilePickerType[]): string {
+  const tokens: string[] = [];
+  const seen = new Set<string>();
+  for (const entry of types) {
+    for (const [mime, extensions] of Object.entries(entry.accept)) {
+      for (const token of [mime, ...extensions]) {
+        if (seen.has(token)) continue;
+        seen.add(token);
+        tokens.push(token);
+      }
+    }
+  }
+  return tokens.join(",");
+}
 
 interface PickerWritable {
   write(data: Blob): Promise<void>;

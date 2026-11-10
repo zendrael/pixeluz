@@ -38,7 +38,7 @@ Teste na interface pública da costura. Um teste novo numa costura que não est�
 | Raster | funções de `src/render/raster.ts` | traço gravado no buffer | evento de ponteiro |
 | Composite | `compositeFrame` | ordem das camadas, referência e tile | PNG exportado |
 | Projeto | `serializeProject` / `deserializeProject` | ida e volta do sprite | IndexedDB |
-| Arquivo | leitores e escritores em `src/io/` | bytes de PNG, GIF, JPEG, ASE, paleta e a preparação do vídeo (escala, fundo opaco, tamanho par) | diálogo do sistema e o codec |
+| Arquivo | leitores e escritores em `src/io/` | bytes de PNG, GIF, JPEG, ASE, paleta, a lista `accept` do seletor e a preparação do vídeo (escala, fundo opaco, tamanho par) | diálogo do sistema e o codec |
 | Paleta | `parsePaletteFile`, `paletteToHex`, `lospecSlug` | `.hex`, `.gpl`, JSON do Lospec | rede |
 | Zoom | `zoomFromPinch`, `consumeWheelPinch` | um nível por gesto e a folga no limite | evento `wheel` do browser |
 | Caneta | `palmBlocksTouch`, `pointerSamples`, `paintSettings` | toque ignorado com a caneta por perto, amostras do traço, tamanho escalado pela pressão e opacidade da sessão intacta | o hardware da S-Pen |

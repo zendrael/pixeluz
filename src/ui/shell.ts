@@ -1,3 +1,4 @@
+import { fileInputAccept, OPEN_FILE_TYPES, PALETTE_FILE_TYPES } from "../io/files";
 import { currentLocale, text, blendLabels } from "./i18n";
 
 function fa(icon: string): string {
@@ -434,8 +435,8 @@ export function mountShell(root: HTMLElement): void {
               <button type="button" class="btn btn-sm btn-outline-primary" data-action="browse">${text.browse}</button>
             </div>
             <div id="project-list" class="list-group"></div>
-            <input id="file-input" type="file" accept=".pixeluz.json,.json,.ase,.aseprite,.png,.gif,.jpg,.jpeg,image/png,image/gif,image/jpeg,application/json" class="d-none" />
-            <input id="palette-file" type="file" accept=".hex,.gpl,.json,.txt,text/plain,application/json" class="d-none" />
+            <input id="file-input" type="file" accept="${fileInputAccept(OPEN_FILE_TYPES)}" class="d-none" />
+            <input id="palette-file" type="file" accept="${fileInputAccept(PALETTE_FILE_TYPES)}" class="d-none" />
           </div>
         </div>
       </div>
