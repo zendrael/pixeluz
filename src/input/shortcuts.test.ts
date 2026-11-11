@@ -13,7 +13,12 @@ describe("atalhos", () => {
     expect(shortcutForChord("shift+u", bindings)).toEqual({ type: "tool", tool: "ellipse" });
     expect(shortcutForChord("mod+z", bindings)).toEqual({ type: "undo" });
     expect(shortcutForChord("mod+c", bindings)).toEqual({ type: "copy" });
+    expect(shortcutForChord("mod+x", bindings)).toEqual({ type: "cut" });
     expect(shortcutForChord("mod+v", bindings)).toEqual({ type: "paste" });
+    expect(shortcutForChord("mod+a", bindings)).toEqual({ type: "select-all" });
+    expect(shortcutForChord("escape", bindings)).toEqual({ type: "deselect" });
+    expect(shortcutForChord("delete", bindings)).toEqual({ type: "delete-selection" });
+    expect(shortcutForChord("backspace", bindings)).toEqual({ type: "delete-selection" });
   });
 
   it("recusa um atalho que já pertence a outra ação", () => {

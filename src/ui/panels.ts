@@ -235,6 +235,11 @@ function bindingLabel(id: BindingId): string {
   if (id === "prev-frame") return text.prevFrame;
   if (id === "next-frame") return text.nextFrame;
   if (id === "copy") return text.copySelection;
+  if (id === "cut") return text.cutSelection;
+  if (id === "paste") return text.pasteSelection;
+  if (id === "select-all") return text.selectAll;
+  if (id === "deselect") return text.deselect;
+  if (id === "delete-selection") return text.deleteSelection;
   return text.pasteSelection;
 }
 

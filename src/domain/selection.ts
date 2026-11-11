@@ -37,8 +37,22 @@ export function pasteOrigin(
     clipX < canvasW && clipX + clipW > 0 && clipY < canvasH && clipY + clipH > 0;
   if (intersects) return { x: clipX, y: clipY };
   return {
-    x: Math.min(Math.max(0, clipX), Math.max(0, canvasW - clipW)),
-    y: Math.min(Math.max(0, clipY), Math.max(0, canvasH - clipH)),
+    x: Math.max(0, Math.floor((canvasW - clipW) / 2)),
+    y: Math.max(0, Math.floor((canvasH - clipH) / 2)),
+  };
+}
+
+export function nudgedPasteOrigin(
+  origin: { x: number; y: number },
+  nudge: number,
+  clipW: number,
+  clipH: number,
+  canvasW: number,
+  canvasH: number,
+): { x: number; y: number } {
+  return {
+    x: Math.min(Math.max(0, origin.x + nudge), Math.max(0, canvasW - clipW)),
+    y: Math.min(Math.max(0, origin.y + nudge), Math.max(0, canvasH - clipH)),
   };
 }
 

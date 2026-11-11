@@ -11,7 +11,11 @@ export type BindingId =
   | "prev-frame"
   | "next-frame"
   | "copy"
-  | "paste";
+  | "cut"
+  | "paste"
+  | "select-all"
+  | "deselect"
+  | "delete-selection";
 
 export type Bindings = Record<BindingId, string>;
 
@@ -24,7 +28,11 @@ export type Shortcut =
   | { type: "frame"; delta: number }
   | { type: "new" }
   | { type: "copy" }
+  | { type: "cut" }
   | { type: "paste" }
+  | { type: "select-all" }
+  | { type: "deselect" }
+  | { type: "delete-selection" }
   | { type: "space"; down: boolean };
 
 const ORDER: BindingId[] = [
@@ -37,7 +45,11 @@ const ORDER: BindingId[] = [
   "prev-frame",
   "next-frame",
   "copy",
+  "cut",
   "paste",
+  "select-all",
+  "deselect",
+  "delete-selection",
 ];
 
 const EXTRA: Partial<Record<BindingId, string[]>> = {
@@ -45,6 +57,7 @@ const EXTRA: Partial<Record<BindingId, string[]>> = {
   redo: ["mod+y"],
   "prev-frame": [","],
   "next-frame": ["."],
+  "delete-selection": ["backspace"],
 };
 
 const STORAGE_KEY = "pixeluz.shortcuts";
@@ -67,7 +80,11 @@ export function defaultBindings(): Bindings {
     "prev-frame": "arrowleft",
     "next-frame": "arrowright",
     copy: "mod+c",
+    cut: "mod+x",
     paste: "mod+v",
+    "select-all": "mod+a",
+    deselect: "escape",
+    "delete-selection": "delete",
   } as Bindings;
   for (const tool of TOOL_META) bindings[tool.id] = tool.key;
   return bindings;
@@ -131,6 +148,9 @@ export function formatChord(chord: string): string {
       if (part === "arrowdown") return "↓";
       if (part === "space") return "Space";
       if (part === "enter") return "Enter";
+      if (part === "escape") return "Esc";
+      if (part === "delete") return "Del";
+      if (part === "backspace") return "Backspace";
       if (part.length === 1) return part.toUpperCase();
       return part;
     })
@@ -176,7 +196,21 @@ export function matchShortcut(event: KeyboardEvent, bindings: Bindings = loadBin
 }
 
 function toShortcut(id: BindingId): Shortcut {
-  if (id === "undo" || id === "redo" || id === "save" || id === "play" || id === "new" || id === "copy" || id === "paste") return { type: id };
+  if (
+    id === "undo" ||
+    id === "redo" ||
+    id === "save" ||
+    id === "play" ||
+    id === "new" ||
+    id === "copy" ||
+    id === "cut" ||
+    id === "paste" ||
+    id === "select-all" ||
+    id === "deselect" ||
+    id === "delete-selection"
+  ) {
+    return { type: id };
+  }
   if (id === "prev-frame") return { type: "frame", delta: -1 };
   if (id === "next-frame") return { type: "frame", delta: 1 };
   return { type: "tool", tool: id };

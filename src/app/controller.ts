@@ -494,11 +494,17 @@ export class Controller {
       case "copy-selection":
         this.session.copySelection();
         break;
+      case "cut-selection":
+        this.session.cutSelection();
+        break;
       case "paste-selection":
         this.session.pasteClipboard();
         break;
       case "clear-selection":
         this.session.clearSelection();
+        break;
+      case "delete-selection":
+        this.session.deleteSelectionContents();
         break;
       case "brush-from-selection":
         if (!this.session.captureBrush()) this.flash(text.brushNeedsSelection, "danger");
@@ -592,8 +598,20 @@ export class Controller {
       case "copy":
         this.session.copySelection();
         break;
+      case "cut":
+        this.session.cutSelection();
+        break;
       case "paste":
         this.session.pasteClipboard();
+        break;
+      case "select-all":
+        this.session.selectAll();
+        break;
+      case "deselect":
+        this.session.clearSelection();
+        break;
+      case "delete-selection":
+        this.session.deleteSelectionContents();
         break;
       case "space":
         this.viewport.setSpaceHeld(action.down);

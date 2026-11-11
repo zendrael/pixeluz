@@ -226,10 +226,59 @@ describe("fase 5", () => {
     expect(sourceSession.copySelection()).toBe(true);
     expect(targetSession.pasteClipboard()).toBe(true);
     const target = findCel(targetSession.doc, targetSession.activeLayerId, targetSession.activeFrameId);
-    expect(target && getPixel(target.image, 7, 7)).toEqual(red);
+    expect(target && getPixel(target.image, 3, 3)).toEqual(red);
     expect(getPixel(source.image, 20, 20)).toEqual(red);
     targetSession.undo();
-    expect(target && getPixel(target.image, 7, 7)).toEqual(clear);
+    expect(target && getPixel(target.image, 3, 3)).toEqual(clear);
     expect(getPixel(source.image, 20, 20)).toEqual(red);
+  });
+
+  it("recorta a seleção e deixa o original transparente", () => {
+    const session = new EditorSession(createSprite(4, 4));
+    const cel = findCel(session.doc, session.activeLayerId, session.activeFrameId);
+    if (!cel) throw new Error("cel ausente");
+    setPixel(cel.image, 1, 1, red);
+    const mask = new Uint8Array(16);
+    mask[1 * 4 + 1] = 1;
+    session.setSelection(mask);
+    expect(session.cutSelection()).toBe(true);
+    expect(getPixel(cel.image, 1, 1)).toEqual(clear);
+    expect(session.selection).toBeNull();
+    expect(session.pasteClipboard()).toBe(true);
+    expect(getPixel(cel.image, 1, 1)).toEqual(red);
+  });
+
+  it("apaga os pixels da seleção e mantém a máscara", () => {
+    const session = new EditorSession(createSprite(4, 4));
+    const cel = findCel(session.doc, session.activeLayerId, session.activeFrameId);
+    if (!cel) throw new Error("cel ausente");
+    setPixel(cel.image, 2, 2, red);
+    const mask = new Uint8Array(16);
+    mask[2 * 4 + 2] = 1;
+    session.setSelection(mask);
+    expect(session.deleteSelectionContents()).toBe(true);
+    expect(getPixel(cel.image, 2, 2)).toEqual(clear);
+    expect(session.selection?.[2 * 4 + 2]).toBe(1);
+  });
+
+  it("seleciona o canvas inteiro", () => {
+    const session = new EditorSession(createSprite(2, 2));
+    expect(session.selectAll()).toBe(true);
+    expect(session.selection).toEqual(new Uint8Array([1, 1, 1, 1]));
+  });
+
+  it("desloca colagens repetidas no mesmo desenho", () => {
+    const session = new EditorSession(createSprite(4, 4));
+    const cel = findCel(session.doc, session.activeLayerId, session.activeFrameId);
+    if (!cel) throw new Error("cel ausente");
+    setPixel(cel.image, 0, 0, red);
+    const mask = new Uint8Array(16);
+    mask[0] = 1;
+    session.setSelection(mask);
+    expect(session.copySelection()).toBe(true);
+    expect(session.pasteClipboard()).toBe(true);
+    expect(getPixel(cel.image, 0, 0)).toEqual(red);
+    expect(session.pasteClipboard()).toBe(true);
+    expect(getPixel(cel.image, 1, 1)).toEqual(red);
   });
 });

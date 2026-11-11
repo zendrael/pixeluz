@@ -44,9 +44,9 @@ Teste na interface pública da costura. Um teste novo numa costura que não est�
 | Caneta | `palmBlocksTouch`, `pointerSamples`, `paintSettings` | toque ignorado com a caneta por perto, amostras do traço, tamanho escalado pela pressão e opacidade da sessão intacta | o hardware da S-Pen |
 | Armazenamento | `saveProject`, `loadProject`, `saveRecovery`, `loadRecovery` | ida e volta do JSON no IndexedDB e recuperação de várias abas | service worker e cota do navegador |
 | Painel | `clampPanelLayout`, `timelineLimit`, `panelSnapTarget`, `optionGroupsFor` | teto, recolhimento e opções da ferramenta ativa | arraste real |
-| Atalho | `matchShortcut` | acorde para ação, inclusive copiar e colar | foco do input |
+| Atalho | `matchShortcut` | acorde para ação, inclusive copiar, recortar, colar, selecionar tudo, desfazer seleção e apagar | foco do input |
 | Idioma | `preferredLocale` | escolha salva, português e espanhol do navegador, inglês nos demais | `navigator` real |
-| Sessão | `EditorSession` | grade, tile, texto, RotSprite, copiar e colar a seleção (inclusive entre abas), camada travada, undo | layout Bootstrap |
+| Sessão | `EditorSession` | grade, tile, texto, RotSprite, copiar, recortar, colar, apagar e selecionar tudo (inclusive entre abas), camada travada, undo | layout Bootstrap |
 | Atualização | `beginUpdate` | aviso, gravação e um único recarregamento | service worker e rede |
 | Diálogo | `askConfirm` / `askAlert` | resolve true/false e fecha; alerta resolve no OK | Bootstrap real no browser |
 | Interface | o app no browser | o fluxo que o usuário vê | lógica já coberta acima |

@@ -43,7 +43,7 @@ import { createImage, diffSnapshot, getPixel, setPixel } from "../domain/image-b
 import { MAX_BRUSH_SIZE, MAX_FRAME_MS, MAX_LAYERS, MAX_SPRITE_SIZE, MAX_ZOOM, MIN_FRAME_MS, MIN_SPRITE_SIZE, MIN_ZOOM, gridCell } from "../domain/limits";
 import { framesInPlaybackOrder, playbackBounds, stepPlayback } from "../domain/playback";
 import { rotsprite } from "../domain/rotsprite";
-import { maskBounds, pasteOrigin } from "../domain/selection";
+import { maskBounds, nudgedPasteOrigin, pasteOrigin } from "../domain/selection";
 import { editSelection, type SelectionOp } from "../domain/selection-edit";
 import { contentLayers, createCel, findCel, findLayer, paintableLayers } from "../domain/sprite";
 import { emptyTileGrid, makeTileset, paintTilePoints, rasterizeTiles, tileCel, type TileDrawMode, type TilePixelMode } from "../domain/tiles";
@@ -51,7 +51,7 @@ import type { BlendMode, ColorMode, ImageBuffer, Layer, LayerKind, PixelChange, 
 import { compositeFrame } from "../render/composite";
 import type { EditorApi } from "../tools/tool";
 import type { Command } from "../commands/command";
-import { getSelectionClipboard, setSelectionClipboard } from "./selection-clipboard";
+import { getSelectionClipboard, setSelectionClipboard, takePasteNudge } from "./selection-clipboard";
 
 export type ChangeKind = "canvas" | "chrome" | "document";
 
@@ -784,13 +784,55 @@ export class EditorSession implements EditorApi {
     return true;
   }
 
+  cutSelection(): boolean {
+    if (!this.copySelection()) return false;
+    if (!this.deleteSelectionContents()) {
+      this.clearSelection();
+      return true;
+    }
+    this.clearSelection();
+    return true;
+  }
+
+  deleteSelectionContents(): boolean {
+    const layer = findLayer(this.doc, this.activeLayerId);
+    const mask = this.selection;
+    if (!layer || (layer.kind !== "image" && layer.kind !== "reference") || !layer.visible || layer.locked || !mask) return false;
+    const cel = findCel(this.doc, this.activeLayerId, this.activeFrameId);
+    if (!cel || mask.length !== cel.image.width * cel.image.height) return false;
+    const snapshot = cel.image.data.slice();
+    const clear = { r: 0, g: 0, b: 0, a: 0 };
+    let touched = false;
+    for (let y = 0; y < cel.image.height; y += 1) {
+      for (let x = 0; x < cel.image.width; x += 1) {
+        if (mask[y * cel.image.width + x] !== 1) continue;
+        const current = getPixel(cel.image, x, y);
+        if (!current || current.a === 0) continue;
+        setPixel(cel.image, x, y, clear);
+        touched = true;
+      }
+    }
+    if (!touched) return false;
+    const changes = diffSnapshot(cel.image, snapshot);
+    if (changes.length > 0) this.commitPixels(this.activeLayerId, this.activeFrameId, changes, true);
+    return true;
+  }
+
+  selectAll(): boolean {
+    const mask = new Uint8Array(this.doc.width * this.doc.height);
+    mask.fill(1);
+    this.setSelection(mask);
+    return true;
+  }
+
   pasteClipboard(): boolean {
     const clip = getSelectionClipboard();
     const layer = findLayer(this.doc, this.activeLayerId);
     if (!clip || !layer || (layer.kind !== "image" && layer.kind !== "reference") || !layer.visible || layer.locked) return false;
     const cel = findCel(this.doc, this.activeLayerId, this.activeFrameId);
     if (!cel) return false;
-    const origin = pasteOrigin(clip.x, clip.y, clip.image.width, clip.image.height, cel.image.width, cel.image.height);
+    const base = pasteOrigin(clip.x, clip.y, clip.image.width, clip.image.height, cel.image.width, cel.image.height);
+    const origin = nudgedPasteOrigin(base, takePasteNudge(), clip.image.width, clip.image.height, cel.image.width, cel.image.height);
     const snapshot = cel.image.data.slice();
     const next = new Uint8Array(cel.image.width * cel.image.height);
     for (let y = 0; y < clip.image.height; y += 1) {

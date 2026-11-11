@@ -9,8 +9,10 @@ export type SelectionClipboard = {
 };
 
 let shared: SelectionClipboard | null = null;
+let pasteStreak = 0;
 
 export function setSelectionClipboard(value: SelectionClipboard | null): void {
+  pasteStreak = 0;
   if (!value) {
     shared = null;
     return;
@@ -27,7 +29,15 @@ export function getSelectionClipboard(): SelectionClipboard | null {
   return shared;
 }
 
+/** Returns the current paste offset and advances the streak for the next paste. */
+export function takePasteNudge(): number {
+  const nudge = pasteStreak;
+  pasteStreak += 1;
+  return nudge;
+}
+
 /** Clears the shared clipboard. Only for tests. */
 export function resetSelectionClipboardForTests(): void {
   shared = null;
+  pasteStreak = 0;
 }
