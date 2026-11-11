@@ -1,3 +1,4 @@
+import { MAX_SPRITE_SIZE, MIN_SPRITE_SIZE } from "../domain/limits";
 import { fileInputAccept, OPEN_FILE_TYPES, PALETTE_FILE_TYPES } from "../io/files";
 import { currentLocale, text, blendLabels } from "./i18n";
 
@@ -298,11 +299,11 @@ export function mountShell(root: HTMLElement): void {
             <div class="row g-2">
               <div class="col">
                 <label class="form-label" for="new-width">${text.width}</label>
-                <input class="form-control" id="new-width" type="number" min="1" max="256" value="32" required inputmode="numeric" />
+                <input class="form-control" id="new-width" type="number" min="${MIN_SPRITE_SIZE}" max="${MAX_SPRITE_SIZE}" value="32" required inputmode="numeric" />
               </div>
               <div class="col">
                 <label class="form-label" for="new-height">${text.height}</label>
-                <input class="form-control" id="new-height" type="number" min="1" max="256" value="32" required inputmode="numeric" />
+                <input class="form-control" id="new-height" type="number" min="${MIN_SPRITE_SIZE}" max="${MAX_SPRITE_SIZE}" value="32" required inputmode="numeric" />
               </div>
             </div>
           </div>
@@ -371,14 +372,14 @@ export function mountShell(root: HTMLElement): void {
               <h3 class="h6">${text.canvasSize}</h3>
               <form id="form-canvas">
                 <div class="row g-2">
-                  <div class="col"><label class="form-label" for="canvas-width">${text.width}</label><input class="form-control" id="canvas-width" type="number" min="1" max="256" inputmode="numeric" required /></div>
-                  <div class="col"><label class="form-label" for="canvas-height">${text.height}</label><input class="form-control" id="canvas-height" type="number" min="1" max="256" inputmode="numeric" required /></div>
+                  <div class="col"><label class="form-label" for="canvas-width">${text.width}</label><input class="form-control" id="canvas-width" type="number" min="${MIN_SPRITE_SIZE}" max="${MAX_SPRITE_SIZE}" inputmode="numeric" required /></div>
+                  <div class="col"><label class="form-label" for="canvas-height">${text.height}</label><input class="form-control" id="canvas-height" type="number" min="${MIN_SPRITE_SIZE}" max="${MAX_SPRITE_SIZE}" inputmode="numeric" required /></div>
                   <div class="col-12"><label class="form-label" for="canvas-anchor">${text.anchor}</label><select class="form-select" id="canvas-anchor"><option value="nw">↖</option><option value="n">↑</option><option value="ne">↗</option><option value="w">←</option><option value="center" selected>⊙</option><option value="e">→</option><option value="sw">↙</option><option value="s">↓</option><option value="se">↘</option></select></div>
                 </div>
                 <h3 class="h6 mt-3">${text.grid}</h3>
                 <div class="row g-2">
-                  <div class="col"><label class="form-label" for="grid-width">${text.width}</label><input class="form-control" id="grid-width" type="number" min="1" max="256" inputmode="numeric" required /></div>
-                  <div class="col"><label class="form-label" for="grid-height">${text.height}</label><input class="form-control" id="grid-height" type="number" min="1" max="256" inputmode="numeric" required /></div>
+                  <div class="col"><label class="form-label" for="grid-width">${text.width}</label><input class="form-control" id="grid-width" type="number" min="${MIN_SPRITE_SIZE}" max="${MAX_SPRITE_SIZE}" inputmode="numeric" required /></div>
+                  <div class="col"><label class="form-label" for="grid-height">${text.height}</label><input class="form-control" id="grid-height" type="number" min="${MIN_SPRITE_SIZE}" max="${MAX_SPRITE_SIZE}" inputmode="numeric" required /></div>
                 </div>
                 <p class="small text-secondary mb-0 mt-2">${text.gridHint}</p>
               </form>

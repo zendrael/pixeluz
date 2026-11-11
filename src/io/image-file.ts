@@ -72,7 +72,7 @@ function spriteFromFrames(frames: Array<{ image: ImageBuffer; durationMs: number
     first.image.width > MAX_SPRITE_SIZE ||
     first.image.height > MAX_SPRITE_SIZE
   ) {
-    throw new Error("A imagem precisa ter de 1 a 256 pixels de lado");
+    throw new Error(`A imagem precisa ter de ${MIN_SPRITE_SIZE} a ${MAX_SPRITE_SIZE} pixels de lado`);
   }
   const sprite = createSprite(first.image.width, first.image.height, spriteName(filename));
   const layerId = sprite.layers[0]?.id;

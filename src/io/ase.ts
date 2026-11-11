@@ -126,7 +126,7 @@ export async function readAse(bytes: Uint8Array): Promise<SpriteDocument> {
   const height = view.getUint16(10, true);
   const depth = view.getUint16(12, true);
   if (width < MIN_SPRITE_SIZE || height < MIN_SPRITE_SIZE || width > MAX_SPRITE_SIZE || height > MAX_SPRITE_SIZE) {
-    throw new Error("Sprite maior que o limite de 256");
+    throw new Error(`Sprite maior que o limite de ${MAX_SPRITE_SIZE}`);
   }
   const colorMode = modeFromDepth(depth);
   const headerFlags = view.getUint32(14, true);

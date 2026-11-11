@@ -25,7 +25,7 @@ O que ficou de fora está em `ROADMAP.md`.
 - A seleção e o resto do estado de vista ficam fora do PNG e do JSON.
 - A arte no canvas continua pixelada. A interface é Bootstrap, não um tema de pixel.
 - A implementação é original. Não copiar código, assets ou temas do Aseprite ou do LibreSprite, e não decompilar o binário do Aseprite.
-- Limites vividos no código: sprite 1–256, zoom 1–64, paleta 256, camadas 32, pincel 32, history 200.
+- Limites vividos no código: sprite 1–1920, zoom 1–64, paleta 256, camadas 32, pincel 32, history 200.
 
 ## Costuras
 

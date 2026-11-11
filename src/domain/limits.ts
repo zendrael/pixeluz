@@ -1,5 +1,5 @@
 export const MIN_SPRITE_SIZE = 1;
-export const MAX_SPRITE_SIZE = 256;
+export const MAX_SPRITE_SIZE = 1920;
 export const MIN_ZOOM = 1;
 export const MAX_ZOOM = 64;
 export const MIN_FRAME_MS = 20;

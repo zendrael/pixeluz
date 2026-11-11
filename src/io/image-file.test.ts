@@ -84,9 +84,22 @@ describe("image file", () => {
     expectClose(cel && getPixel(cel.image, 15, 7), blue, 8);
   });
 
+  it("opens a full hd png as a sprite the size of the image", async () => {
+    const image = createImage(1920, 1080);
+    setPixel(image, 0, 0, red);
+    setPixel(image, 1919, 1079, blue);
+    const sprite = await readImageSprite(encodePng(image), "tela.png");
+    expect(sprite.width).toBe(1920);
+    expect(sprite.height).toBe(1080);
+    expect(sprite.name).toBe("tela");
+    const cel = findCel(sprite, sprite.layers[0]!.id, sprite.frames[0]!.id);
+    expect(cel && getPixel(cel.image, 0, 0)).toEqual(red);
+    expect(cel && getPixel(cel.image, 1919, 1079)).toEqual(blue);
+  });
+
   it("rejects an image larger than the sprite", async () => {
-    const image = createImage(257, 1);
-    await expect(readImageSprite(encodePng(image), "grande.png")).rejects.toThrow("A imagem precisa ter de 1 a 256 pixels de lado");
+    const image = createImage(1921, 1);
+    await expect(readImageSprite(encodePng(image), "grande.png")).rejects.toThrow("A imagem precisa ter de 1 a 1920 pixels de lado");
   });
 
   it("opens an interlaced indexed png", async () => {
