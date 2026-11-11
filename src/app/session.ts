@@ -43,7 +43,7 @@ import { createImage, diffSnapshot, getPixel, setPixel } from "../domain/image-b
 import { MAX_BRUSH_SIZE, MAX_FRAME_MS, MAX_LAYERS, MAX_SPRITE_SIZE, MAX_ZOOM, MIN_FRAME_MS, MIN_SPRITE_SIZE, MIN_ZOOM, gridCell } from "../domain/limits";
 import { framesInPlaybackOrder, playbackBounds, stepPlayback } from "../domain/playback";
 import { rotsprite } from "../domain/rotsprite";
-import { maskBounds } from "../domain/selection";
+import { maskBounds, pasteOrigin } from "../domain/selection";
 import { editSelection, type SelectionOp } from "../domain/selection-edit";
 import { contentLayers, createCel, findCel, findLayer, paintableLayers } from "../domain/sprite";
 import { emptyTileGrid, makeTileset, paintTilePoints, rasterizeTiles, tileCel, type TileDrawMode, type TilePixelMode } from "../domain/tiles";
@@ -790,13 +790,14 @@ export class EditorSession implements EditorApi {
     if (!clip || !layer || (layer.kind !== "image" && layer.kind !== "reference") || !layer.visible || layer.locked) return false;
     const cel = findCel(this.doc, this.activeLayerId, this.activeFrameId);
     if (!cel) return false;
+    const origin = pasteOrigin(clip.x, clip.y, clip.image.width, clip.image.height, cel.image.width, cel.image.height);
     const snapshot = cel.image.data.slice();
     const next = new Uint8Array(cel.image.width * cel.image.height);
     for (let y = 0; y < clip.image.height; y += 1) {
       for (let x = 0; x < clip.image.width; x += 1) {
         if (clip.mask[y * clip.image.width + x] !== 1) continue;
-        const px = clip.x + x;
-        const py = clip.y + y;
+        const px = origin.x + x;
+        const py = origin.y + y;
         if (px < 0 || py < 0 || px >= cel.image.width || py >= cel.image.height) continue;
         const color = getPixel(clip.image, x, y);
         if (!color) continue;

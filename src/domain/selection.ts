@@ -25,6 +25,23 @@ export function maskBounds(mask: Uint8Array, width: number, height: number): Mas
   return { minX, minY, maxX, maxY };
 }
 
+export function pasteOrigin(
+  clipX: number,
+  clipY: number,
+  clipW: number,
+  clipH: number,
+  canvasW: number,
+  canvasH: number,
+): { x: number; y: number } {
+  const intersects =
+    clipX < canvasW && clipX + clipW > 0 && clipY < canvasH && clipY + clipH > 0;
+  if (intersects) return { x: clipX, y: clipY };
+  return {
+    x: Math.min(Math.max(0, clipX), Math.max(0, canvasW - clipW)),
+    y: Math.min(Math.max(0, clipY), Math.max(0, canvasH - clipH)),
+  };
+}
+
 export function combineMasks(current: Uint8Array | null, incoming: Uint8Array, mode: SelectMode): Uint8Array | null {
   const out = new Uint8Array(incoming.length);
   let any = false;

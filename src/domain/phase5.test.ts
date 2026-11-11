@@ -213,4 +213,23 @@ describe("fase 5", () => {
     expect(target && getPixel(target.image, 1, 1)).toEqual(clear);
     expect(getPixel(source.image, 1, 1)).toEqual(red);
   });
+
+  it("cola a seleção noutra aba menor dentro do canvas destino", () => {
+    const sourceSession = new EditorSession(createSprite(32, 32, "A"));
+    const targetSession = new EditorSession(createSprite(8, 8, "B"));
+    const source = findCel(sourceSession.doc, sourceSession.activeLayerId, sourceSession.activeFrameId);
+    if (!source) throw new Error("cel ausente");
+    setPixel(source.image, 20, 20, red);
+    const mask = new Uint8Array(32 * 32);
+    mask[20 * 32 + 20] = 1;
+    sourceSession.setSelection(mask);
+    expect(sourceSession.copySelection()).toBe(true);
+    expect(targetSession.pasteClipboard()).toBe(true);
+    const target = findCel(targetSession.doc, targetSession.activeLayerId, targetSession.activeFrameId);
+    expect(target && getPixel(target.image, 7, 7)).toEqual(red);
+    expect(getPixel(source.image, 20, 20)).toEqual(red);
+    targetSession.undo();
+    expect(target && getPixel(target.image, 7, 7)).toEqual(clear);
+    expect(getPixel(source.image, 20, 20)).toEqual(red);
+  });
 });
