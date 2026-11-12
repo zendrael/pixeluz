@@ -74,12 +74,17 @@ export class PlotTool implements Tool {
       return true;
     }
     if (event.key === "Backspace") {
-      this.knots.pop();
-      if (this.knots.length === 0) this.onCancel();
-      else this.preview(this.active);
-      return true;
+      return this.undoStep();
     }
     return false;
+  }
+
+  undoStep(): boolean {
+    if (this.kind === "contour" || this.knots.length === 0 || !this.active) return false;
+    this.knots.pop();
+    if (this.knots.length === 0) this.onCancel();
+    else this.preview(this.active);
+    return true;
   }
 
   private append(x: number, y: number): void {

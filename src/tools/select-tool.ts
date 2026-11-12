@@ -85,12 +85,17 @@ export class SelectTool implements Tool {
       return true;
     }
     if (event.key === "Backspace") {
-      this.points.pop();
-      if (this.points.length === 0) this.onCancel();
-      else this.apply(this.active, fillPolygon(this.points));
-      return true;
+      return this.undoStep();
     }
     return false;
+  }
+
+  undoStep(): boolean {
+    if (this.kind !== "polygon" || this.points.length === 0 || !this.active) return false;
+    this.points.pop();
+    if (this.points.length === 0) this.onCancel();
+    else this.apply(this.active, fillPolygon(this.points));
+    return true;
   }
 
   private finish(ctx: ToolContext): void {

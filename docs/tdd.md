@@ -45,6 +45,7 @@ Teste na interface pública da costura. Um teste novo numa costura que não est�
 | Armazenamento | `saveProject`, `loadProject`, `saveRecovery`, `loadRecovery` | ida e volta do JSON no IndexedDB e recuperação de várias abas | service worker e cota do navegador |
 | Painel | `clampPanelLayout`, `timelineLimit`, `panelSnapTarget`, `optionGroupsFor`, `celGridModel` | teto, recolhimento, opções da ferramenta ativa e ordem da grade de cels | arraste real |
 | Atalho | `matchShortcut` | acorde para ação, inclusive copiar, recortar, colar, selecionar tudo, desfazer seleção e apagar | foco do input |
+| Ferramenta | `Tool` (`onDown` / `onKey` / `undoStep`) | vértices de polígono/curva e laço poligonal antes do commit | gesto de ponteiro no viewport |
 | Idioma | `preferredLocale` | escolha salva, português e espanhol do navegador, inglês nos demais | `navigator` real |
 | Sessão | `EditorSession` | grade, tile, texto, RotSprite, seleção flutuante (lift/move/stamp), morph da máscara, escala/rotação livres, copiar, recortar, colar, apagar e selecionar tudo (inclusive entre abas), camada travada, undo | layout Bootstrap |
 | Transformação livre | `scaleSelectionNearest` / `rotateSelectionNearest` / `hitTransformHandleAt` | escala nearest, rotação RotSprite do recorte e hit dos handles em coordenadas do canvas | desenho/gesto Bootstrap no viewport |

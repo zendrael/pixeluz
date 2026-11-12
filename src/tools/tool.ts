@@ -95,4 +95,6 @@ export interface Tool {
   onUp(ctx: ToolContext): void;
   onCancel(): void;
   onKey?(event: KeyboardEvent): boolean;
+  /** Remove one in-progress step (polygon/curve vertex). True if consumed. */
+  undoStep?(): boolean;
 }

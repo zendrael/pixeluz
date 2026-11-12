@@ -426,7 +426,7 @@ export class Controller {
         this.toggleAnimPreview();
         break;
       case "undo":
-        this.session.undo();
+        if (!this.tool.undoStep?.()) this.session.undo();
         break;
       case "redo":
         this.session.redo();
@@ -665,7 +665,7 @@ export class Controller {
         this.setTool(action.tool);
         break;
       case "undo":
-        this.session.undo();
+        if (!this.tool.undoStep?.()) this.session.undo();
         break;
       case "redo":
         this.session.redo();
