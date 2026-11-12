@@ -29,7 +29,9 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}"],
+        globPatterns: ["**/*.{js,css,html,png,ico,woff2}", "favicon.svg"],
+        // Phosphor ships svg/ttf/woff fallbacks; browsers use woff2.
+        globIgnores: ["**/Phosphor-*.{svg,ttf,woff}"],
         navigateFallback: "offline.html",
       },
     }),
