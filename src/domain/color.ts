@@ -8,6 +8,16 @@ export function rgbaEqual(a: Rgba, b: Rgba): boolean {
   return a.r === b.r && a.g === b.g && a.b === b.b && a.a === b.a;
 }
 
+export function rgbaWithinTolerance(a: Rgba, b: Rgba, tolerance: number): boolean {
+  if (tolerance <= 0) return rgbaEqual(a, b);
+  return (
+    Math.abs(a.r - b.r) <= tolerance &&
+    Math.abs(a.g - b.g) <= tolerance &&
+    Math.abs(a.b - b.b) <= tolerance &&
+    Math.abs(a.a - b.a) <= tolerance
+  );
+}
+
 export function clamp8(value: number): number {
   return Math.max(0, Math.min(255, Math.round(value)));
 }
@@ -52,6 +62,46 @@ export function rgbToHsl(r: number, g: number, b: number): [number, number, numb
   else if (max === gn) hue = (bn - rn) / delta + 2;
   else hue = (rn - gn) / delta + 4;
   return [hue / 6, saturation, light];
+}
+
+/** Hue 0–360, saturation and value 0–100. */
+export function rgbToHsv(r: number, g: number, b: number): [number, number, number] {
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const delta = max - min;
+  let hue = 0;
+  if (delta !== 0) {
+    if (max === rn) hue = ((gn - bn) / delta) % 6;
+    else if (max === gn) hue = (bn - rn) / delta + 2;
+    else hue = (rn - gn) / delta + 4;
+    hue *= 60;
+    if (hue < 0) hue += 360;
+  }
+  const saturation = max === 0 ? 0 : (delta / max) * 100;
+  return [hue, saturation, max * 100];
+}
+
+/** Hue 0–360, saturation and value 0–100. */
+export function hsvToRgb(h: number, s: number, v: number): [number, number, number] {
+  const hue = ((h % 360) + 360) % 360;
+  const sat = Math.max(0, Math.min(100, s)) / 100;
+  const val = Math.max(0, Math.min(100, v)) / 100;
+  const c = val * sat;
+  const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+  const m = val - c;
+  let rp = 0;
+  let gp = 0;
+  let bp = 0;
+  if (hue < 60) [rp, gp, bp] = [c, x, 0];
+  else if (hue < 120) [rp, gp, bp] = [x, c, 0];
+  else if (hue < 180) [rp, gp, bp] = [0, c, x];
+  else if (hue < 240) [rp, gp, bp] = [0, x, c];
+  else if (hue < 300) [rp, gp, bp] = [x, 0, c];
+  else [rp, gp, bp] = [c, 0, x];
+  return [clamp8((rp + m) * 255), clamp8((gp + m) * 255), clamp8((bp + m) * 255)];
 }
 
 export function hslToRgb(h: number, s: number, l: number): [number, number, number] {

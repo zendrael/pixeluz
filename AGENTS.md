@@ -18,6 +18,6 @@ Contexto único: `GLOSSARY.md` na raiz e ADRs em `docs/adr/`. See `docs/agents/d
 
 ## Skills instaladas
 
-Engenharia e produtividade de [mattpocock/skills](https://github.com/mattpocock/skills) em `.agents/skills/` (commit `a496f5513d4a4cf889bc48e189e579f4b0bdf6aa`, licença MIT). No Cursor, `.cursor/skills/` aponta para essa pasta. A skill `pixeluz` guarda as invariantes deste editor.
+Engenharia e produtividade de [mattpocock/skills](https://github.com/mattpocock/skills) em `.agents/skills/` (commit `a496f5513d4a4cf889bc48e189e579f4b0bdf6aa`, licença MIT). No Cursor, `.cursor/skills/` aponta para essa pasta. A skill `pixeluz` guarda as invariantes deste editor. Publicar o site de produção: skill `publish-pages`.
 
 Comportamento novo passa pela skill `tdd` e por uma costura já listada em `docs/tdd.md`.

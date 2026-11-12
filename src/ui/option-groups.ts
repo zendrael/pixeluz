@@ -25,6 +25,7 @@ export function optionGroupsFor(tool: ToolId, hasSelection: boolean): string[] {
   if (STROKE.has(tool) && tool !== "eraser") groups.push("ink");
   if (tool === "pencil" || tool === "eraser" || tool === "contour") groups.push("perfect");
   if (STROKE.has(tool) || tool === "bucket" || tool === "eyedropper" || SELECT.has(tool)) groups.push("tile");
+  if (tool === "bucket" || tool === "select-wand") groups.push("tolerance");
   if (tool === "gradient") groups.push("gradient", "bayer");
   if (SELECT.has(tool)) groups.push("select");
   if (tool === "move" || hasSelection) groups.push("transform");

@@ -35,7 +35,7 @@ Teste na interface pública da costura. Um teste novo numa costura que não est�
 | --- | --- | --- | --- |
 | Buffer | `getPixel` / `setPixel` | leitura e escrita de um pixel | composite |
 | History | `History` undo/redo | reversão de um `Command` | atalho de teclado |
-| Raster | funções de `src/render/raster.ts` | traço gravado no buffer | evento de ponteiro |
+| Raster | funções de `src/render/raster.ts` | traço gravado no buffer; flood com tolerância | evento de ponteiro |
 | Composite | `compositeFrame` | ordem das camadas, referência e tile | PNG exportado |
 | Projeto | `serializeProject` / `deserializeProject` | ida e volta do sprite | IndexedDB |
 | Arquivo | leitores e escritores em `src/io/` | bytes de PNG, GIF, JPEG, ASE, paleta, a lista `accept` do seletor e a preparação do vídeo (escala, fundo opaco, tamanho par) | diálogo do sistema e o codec |
@@ -43,10 +43,10 @@ Teste na interface pública da costura. Um teste novo numa costura que não est�
 | Zoom | `zoomFromPinch`, `consumeWheelPinch` | um nível por gesto e a folga no limite | evento `wheel` do browser |
 | Caneta | `palmBlocksTouch`, `pointerSamples`, `paintSettings` | toque ignorado com a caneta por perto, amostras do traço, tamanho escalado pela pressão e opacidade da sessão intacta | o hardware da S-Pen |
 | Armazenamento | `saveProject`, `loadProject`, `saveRecovery`, `loadRecovery` | ida e volta do JSON no IndexedDB e recuperação de várias abas | service worker e cota do navegador |
-| Painel | `clampPanelLayout`, `timelineLimit`, `panelSnapTarget`, `optionGroupsFor` | teto, recolhimento e opções da ferramenta ativa | arraste real |
+| Painel | `clampPanelLayout`, `timelineLimit`, `panelSnapTarget`, `optionGroupsFor`, `celGridModel` | teto, recolhimento, opções da ferramenta ativa e ordem da grade de cels | arraste real |
 | Atalho | `matchShortcut` | acorde para ação, inclusive copiar, recortar, colar, selecionar tudo, desfazer seleção e apagar | foco do input |
 | Idioma | `preferredLocale` | escolha salva, português e espanhol do navegador, inglês nos demais | `navigator` real |
-| Sessão | `EditorSession` | grade, tile, texto, RotSprite, copiar, recortar, colar, apagar e selecionar tudo (inclusive entre abas), camada travada, undo | layout Bootstrap |
+| Sessão | `EditorSession` | grade, tile, texto, RotSprite, seleção flutuante (lift/move/stamp), copiar, recortar, colar, apagar e selecionar tudo (inclusive entre abas), camada travada, undo | layout Bootstrap |
 | Atualização | `beginUpdate` | aviso, gravação e um único recarregamento | service worker e rede |
 | Diálogo | `askConfirm` / `askAlert` | resolve true/false e fecha; alerta resolve no OK | Bootstrap real no browser |
 | Interface | o app no browser | o fluxo que o usuário vê | lógica já coberta acima |

@@ -15,7 +15,7 @@ export class BucketTool implements Tool {
     const placed = placePixel(ctx.spriteX, ctx.spriteY, cel.image.width, cel.image.height, ctx.session.tile);
     if (!placed) return;
     const color = ctx.button === 2 ? ctx.session.background : ctx.session.foreground;
-    const changes = floodFill(cel.image, placed[0], placed[1], color);
+    const changes = floodFill(cel.image, placed[0], placed[1], color, ctx.session.floodTolerance);
     ctx.session.commitPixels(ctx.session.activeLayerId, ctx.session.activeFrameId, changes, true);
   }
 

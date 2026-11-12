@@ -13,6 +13,14 @@ export function contentLayers(doc: SpriteDocument): Layer[] {
   return doc.layers.filter((layer) => layer.kind !== "group");
 }
 
+/** Top layer first (same order as the layers panel). */
+export function celGridModel(doc: SpriteDocument): { layerIds: string[]; frameIds: string[] } {
+  return {
+    layerIds: [...contentLayers(doc)].reverse().map((layer) => layer.id),
+    frameIds: doc.frames.map((frame) => frame.id),
+  };
+}
+
 export function paintableLayers(doc: SpriteDocument): Layer[] {
   return doc.layers.filter((layer) => layer.kind === "image" || layer.kind === "reference");
 }

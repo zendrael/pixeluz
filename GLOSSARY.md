@@ -22,7 +22,7 @@ Termos do editor. No código os identificadores estão em inglês. A interface f
 
 **Slice.** Retângulo nomeado, com chaves por quadro, usado na exportação por fatia.
 
-**Seleção.** Estado de vista na `EditorSession`. Não entra no PNG nem no JSON do projeto. O clipboard da seleção é compartilhado entre abas.
+**Seleção.** Estado de vista na `EditorSession`. Não entra no PNG nem no JSON do projeto. O clipboard da seleção é compartilhado entre abas. A seleção flutuante (`floating`) guarda pixels levantados até o carimbo (Enter, desfazer seleção ou um traço).
 
 **Estado de vista.** Cor de frente e de fundo, zoom, pan, visibilidade da grade, pincel, tinta, simetria, ladrilho, onion skin, atalhos, idioma, seleção e tamanho dos painéis. Fica fora do sprite.
 

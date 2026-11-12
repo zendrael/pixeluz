@@ -283,6 +283,22 @@ body {
   }
 }
 
+.cel-grid {
+  display: grid;
+  gap: 0.25rem;
+  align-items: center;
+  width: max-content;
+  min-width: 100%;
+}
+
+.cel-grid-corner {
+  min-height: 1rem;
+}
+
+.cel-grid-layer-label {
+  max-width: 7rem;
+}
+
 .frame-cell {
   border-width: 2px;
 }

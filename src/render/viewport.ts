@@ -98,6 +98,7 @@ export class Viewport {
           this.ctx.imageSmoothingEnabled = false;
           this.ctx.drawImage(this.previewCanvas, x, y, destW, destH);
         }
+        this.drawFloating(panX + tileX * destW, panY + tileY * destH, zoom);
       }
     }
     if (this.session.showPixelGrid) this.drawGrid(panX, panY, zoom);
@@ -238,6 +239,20 @@ export class Viewport {
       y0: tileY ? Math.max(-8, top) : 0,
       y1: tileY ? Math.min(8, bottom) : 0,
     };
+  }
+
+  private drawFloating(panX: number, panY: number, zoom: number): void {
+    const float = this.session.floating;
+    if (!float) return;
+    this.paintBuffer(this.previewCanvas, float.image);
+    this.ctx.imageSmoothingEnabled = false;
+    this.ctx.drawImage(
+      this.previewCanvas,
+      Math.round(panX + float.x * zoom),
+      Math.round(panY + float.y * zoom),
+      float.image.width * zoom,
+      float.image.height * zoom,
+    );
   }
 
   private drawSelection(panX: number, panY: number, zoom: number): void {

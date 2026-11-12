@@ -59,4 +59,12 @@ describe("raster", () => {
     const empty = createImage(4, 4);
     expect(floodFill(empty, 0, 0, red)).toHaveLength(16);
   });
+
+  it("flood fills neighbors within tolerance", () => {
+    const image = createImage(2, 1);
+    setPixel(image, 0, 0, red);
+    setPixel(image, 1, 0, { r: 250, g: 0, b: 0, a: 255 });
+    expect(floodFill(image, 0, 0, blue, 10)).toHaveLength(2);
+    expect(getPixel(image, 1, 0)).toEqual(blue);
+  });
 });

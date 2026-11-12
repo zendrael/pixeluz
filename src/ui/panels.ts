@@ -1,5 +1,6 @@
 import { rgbaToCss, rgbaToHex } from "../domain/color";
 import type { PalettePreset } from "../domain/palettes";
+import { celGridModel } from "../domain/sprite";
 import type { ImageBuffer, Rgba, Slice, SpriteDocument, Tileset } from "../domain/types";
 import { bindingOrder, formatChord, type BindingId, type Bindings } from "../input/shortcuts";
 import { compositeFrame } from "../render/composite";
@@ -34,10 +35,12 @@ export function renderLayers(hosts: HTMLElement[], doc: SpriteDocument, activeLa
     .map((layer) => {
       const icon = layer.visible ? "fa-eye" : "fa-eye-slash";
       const label = layer.visible ? text.hideLayer : text.showLayer;
+      const lockIcon = layer.locked ? "fa-lock" : "fa-lock-open";
+      const lockLabel = layer.locked ? text.unlockLayer : text.lockLayer;
       const active = layer.id === activeLayerId ? " active" : "";
       const kind = layer.kind === "group" ? text.kindGroup : layer.kind === "reference" ? text.kindReference : layer.kind === "tilemap" ? text.kindTiles : "";
       const pad = layerDepth(doc, layer) * 0.75;
-      return `<div class="list-group-item d-flex align-items-center gap-2${active}" style="padding-left:${0.75 + pad}rem" data-action="select-layer" data-layer-id="${layer.id}"><button type="button" class="btn btn-sm btn-outline-secondary" data-action="toggle-layer" data-layer-id="${layer.id}" aria-label="${label}"><i class="fa-solid ${icon}" aria-hidden="true"></i></button><input class="form-control form-control-sm layer-name" data-layer-name="${layer.id}" value="${escapeHtml(layer.name)}" aria-label="${text.renameLayer}" />${kind ? `<span class="small text-secondary">${kind}</span>` : ""}</div>`;
+      return `<div class="list-group-item d-flex align-items-center gap-2${active}" style="padding-left:${0.75 + pad}rem" data-action="select-layer" data-layer-id="${layer.id}"><button type="button" class="btn btn-sm btn-outline-secondary" data-action="toggle-layer" data-layer-id="${layer.id}" aria-label="${label}"><i class="fa-solid ${icon}" aria-hidden="true"></i></button><button type="button" class="btn btn-sm btn-outline-secondary" data-action="toggle-layer-lock" data-layer-id="${layer.id}" aria-label="${lockLabel}"><i class="fa-solid ${lockIcon}" aria-hidden="true"></i></button><input class="form-control form-control-sm layer-name" data-layer-name="${layer.id}" value="${escapeHtml(layer.name)}" aria-label="${text.renameLayer}" />${kind ? `<span class="small text-secondary">${kind}</span>` : ""}</div>`;
     })
     .join("")}</div>`;
   for (const host of hosts) host.innerHTML = html;
@@ -120,16 +123,35 @@ export function renderTabs(host: HTMLElement, tabs: Array<{ name: string; dirty:
   host.innerHTML = `${buttons}<button type="button" class="btn btn-sm doc-tab-add" data-action="add-tab" aria-label="${text.addTab}"><i class="fa-solid fa-plus" aria-hidden="true"></i></button>`;
 }
 
-export function renderFrames(hosts: HTMLElement[], doc: SpriteDocument, activeIndex: number): void {
-  const html = doc.frames
-    .map((frame, index) => {
-      const active = index === activeIndex ? " border-primary" : "";
-      return `<button type="button" class="frame-cell btn btn-outline-secondary p-1${active}" data-frame-index="${index}"><canvas class="frame-thumb" data-frame-id="${frame.id}" width="${doc.width}" height="${doc.height}"></canvas><span class="small">${index + 1}</span></button>`;
+export function renderFrames(
+  hosts: HTMLElement[],
+  doc: SpriteDocument,
+  activeIndex: number,
+  activeLayerId = "",
+): void {
+  const { layerIds, frameIds } = celGridModel(doc);
+  const header = `<div class="cel-grid-corner"></div>${frameIds
+    .map((_, index) => `<div class="cel-grid-frame-label small text-center${index === activeIndex ? " text-primary fw-semibold" : ""}">${index + 1}</div>`)
+    .join("")}`;
+  const rows = layerIds
+    .map((layerId) => {
+      const layer = doc.layers.find((item) => item.id === layerId);
+      const name = escapeHtml(layer?.name ?? layerId);
+      const cells = frameIds
+        .map((frameId, index) => {
+          const active = index === activeIndex && layerId === activeLayerId ? " border-primary" : "";
+          return `<button type="button" class="frame-cell btn btn-outline-secondary p-1${active}" data-frame-index="${index}" data-layer-id="${layerId}" title="${name} · ${index + 1}"><canvas class="frame-thumb" data-frame-id="${frameId}" data-layer-id="${layerId}" width="${doc.width}" height="${doc.height}"></canvas></button>`;
+        })
+        .join("");
+      return `<div class="cel-grid-layer-label small text-truncate" title="${name}">${name}</div>${cells}`;
     })
     .join("");
+  const columns = Math.max(1, frameIds.length + 1);
+  const html = `<div class="cel-grid" style="grid-template-columns:minmax(4.5rem,7rem) repeat(${Math.max(1, frameIds.length)}, auto)">${header}${rows}</div>`;
   for (const host of hosts) {
     host.innerHTML = html;
-    for (const canvas of host.querySelectorAll<HTMLCanvasElement>("canvas")) {
+    host.style.setProperty("--cel-columns", String(columns));
+    for (const canvas of host.querySelectorAll<HTMLCanvasElement>("canvas.frame-thumb")) {
       const frameId = canvas.dataset.frameId;
       if (frameId) drawThumb(canvas, doc, frameId);
     }

@@ -25,6 +25,29 @@ export class SetLayerVisibleCommand implements Command {
   }
 }
 
+export class SetLayerLockedCommand implements Command {
+  readonly label = "Travar camada";
+
+  constructor(
+    private readonly layerId: string,
+    private readonly before: boolean,
+    private readonly after: boolean,
+  ) {}
+
+  execute(doc: SpriteDocument): void {
+    this.set(doc, this.after);
+  }
+
+  undo(doc: SpriteDocument): void {
+    this.set(doc, this.before);
+  }
+
+  private set(doc: SpriteDocument, locked: boolean): void {
+    const layer = doc.layers.find((item) => item.id === this.layerId);
+    if (layer) layer.locked = locked;
+  }
+}
+
 export class RenameSpriteCommand implements Command {
   readonly label = "Renomear";
 

@@ -23,13 +23,18 @@ export interface EditorApi {
   readonly gradientKind: GradientKind;
   readonly bayer: BayerSize;
   readonly selectMode: SelectMode;
+  readonly floodTolerance: number;
   readonly selection: Uint8Array | null;
+  readonly floating: { image: ImageBuffer; mask: Uint8Array; x: number; y: number } | null;
   composite(): ImageBuffer;
   setForeground(color: Rgba): void;
   setBackground(color: Rgba): void;
   commitPixels(layerId: string, frameId: string, changes: PixelChange[], alreadyApplied: boolean): void;
   setPreview(image: ImageBuffer | null): void;
   setSelection(mask: Uint8Array | null): void;
+  liftSelection(keepSource: boolean): boolean;
+  moveFloating(dx: number, dy: number): boolean;
+  stampFloating(): boolean;
   invalidateCanvas(): void;
   setView(zoom: number, panX: number, panY: number): void;
   zoomAt(canvasX: number, canvasY: number, direction: 1 | -1): void;

@@ -23,6 +23,20 @@ function propTable(rows: string): string {
   return `<div class="prop-table">${rows}</div>`;
 }
 
+function colorEditors(role: string, hex: string, label: string): string {
+  return `<div class="d-flex flex-column gap-1">
+    <div class="d-flex align-items-center gap-2">
+      <input data-color-role="${role}" type="color" class="form-control form-control-color" value="${hex}" aria-label="${label}" />
+      <label class="d-flex align-items-center gap-1 mb-0 small text-nowrap">${text.opacity}<input data-color-channel="${role}" data-channel="a" type="number" min="0" max="255" value="255" class="form-control form-control-sm" style="width:4.5rem" aria-label="${label} alpha" /></label>
+    </div>
+    <div class="d-flex flex-wrap gap-1">
+      <label class="d-flex align-items-center gap-1 mb-0 small">H<input data-color-channel="${role}" data-channel="h" type="number" min="0" max="360" value="0" class="form-control form-control-sm" style="width:4rem" /></label>
+      <label class="d-flex align-items-center gap-1 mb-0 small">S<input data-color-channel="${role}" data-channel="s" type="number" min="0" max="100" value="0" class="form-control form-control-sm" style="width:4rem" /></label>
+      <label class="d-flex align-items-center gap-1 mb-0 small">V<input data-color-channel="${role}" data-channel="v" type="number" min="0" max="100" value="0" class="form-control form-control-sm" style="width:4rem" /></label>
+    </div>
+  </div>`;
+}
+
 function colorPanel(): string {
   return `<div class="color-panel p-2">
     <h2 class="h6 mb-2">${text.colors}</h2>
@@ -32,14 +46,8 @@ function colorPanel(): string {
           <option value="indexed">${text.modeIndexed}</option>
           <option value="grayscale">${text.modeGrayscale}</option>
         </select>`)}
-      ${propRow(text.foreground, `<div class="d-flex align-items-center gap-2">
-          <input data-color-role="fg" type="color" class="form-control form-control-color" value="#000000" aria-label="${text.foreground}" />
-          <span data-alpha="fg" class="text-secondary small"></span>
-        </div>`)}
-      ${propRow(text.background, `<div class="d-flex align-items-center gap-2">
-          <input data-color-role="bg" type="color" class="form-control form-control-color" value="#ffffff" aria-label="${text.background}" />
-          <span data-alpha="bg" class="text-secondary small"></span>
-        </div>`)}
+      ${propRow(text.foreground, colorEditors("fg", "#000000", text.foreground))}
+      ${propRow(text.background, colorEditors("bg", "#ffffff", text.background))}
     `)}
     <div class="d-flex flex-wrap gap-1 my-2">
       <button type="button" class="btn btn-sm btn-outline-secondary" data-action="palette-add">${text.addColor}</button>
@@ -149,6 +157,7 @@ function optionsBar(): string {
     ${optionGroup("tile", optionSelect("tile", text.tile, [["off", text.tileOff], ["x", "X"], ["y", "Y"], ["both", text.symmetryBoth]]), true)}
     ${optionGroup("gradient", optionSelect("gradient", text.gradient, [["linear", text.linear], ["radial", text.radial]]))}
     ${optionGroup("bayer", optionSelect("bayer", text.bayer, [["2", "2×2"], ["4", "4×4"], ["8", "8×8"]]))}
+    ${optionGroup("tolerance", `<label class="d-flex align-items-center gap-1 mb-0 text-nowrap">${text.tolerance}<input data-option="flood-tolerance" type="number" min="0" max="255" value="0" class="form-control form-control-sm" style="width:4.5rem" /></label>`)}
     ${optionGroup("select", optionSelect("select-mode", text.selection, [["replace", text.selectReplace], ["add", text.selectAdd], ["subtract", text.selectSubtract], ["intersect", text.selectIntersect]]))}
     ${optionGroup("transform", `
       ${iconOnly("flip-h", "fa-right-left", text.flipH)}
@@ -198,7 +207,7 @@ function timelineToolbar(): string {
     </div>
   </div>
   <div class="tags-host px-2"></div>
-  <div class="timeline-frames d-flex gap-1 overflow-auto px-2 pb-2"></div>`;
+  <div class="timeline-frames overflow-auto px-2 pb-2"></div>`;
 }
 
 function sheet(id: string, title: string, body: string): string {

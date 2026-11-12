@@ -28,8 +28,8 @@ describe("opções da ferramenta", () => {
     expect(optionGroupsFor("eraser", false)).toEqual(["size", "shape", "angle", "opacity", "symmetry", "perfect", "tile"]);
     expect(optionGroupsFor("line", false)).not.toContain("perfect");
     expect(optionGroupsFor("gradient", false)).toEqual(["gradient", "bayer"]);
-    expect(optionGroupsFor("select-wand", false)).toEqual(["tile", "select"]);
-    expect(optionGroupsFor("bucket", false)).toEqual(["tile"]);
+    expect(optionGroupsFor("select-wand", false)).toEqual(["tile", "tolerance", "select"]);
+    expect(optionGroupsFor("bucket", false)).toEqual(["tile", "tolerance"]);
     expect(optionGroupsFor("move", false)).toEqual(["transform"]);
     expect(optionGroupsFor("pencil", true)).toContain("transform");
     expect(optionGroupsFor("hand", false)).toEqual([]);

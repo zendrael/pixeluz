@@ -56,6 +56,24 @@ export function nudgedPasteOrigin(
   };
 }
 
+export function canvasMaskFromFloating(
+  floating: { mask: Uint8Array; x: number; y: number; image: { width: number; height: number } },
+  canvasW: number,
+  canvasH: number,
+): Uint8Array {
+  const next = new Uint8Array(canvasW * canvasH);
+  for (let y = 0; y < floating.image.height; y += 1) {
+    for (let x = 0; x < floating.image.width; x += 1) {
+      if (floating.mask[y * floating.image.width + x] !== 1) continue;
+      const px = floating.x + x;
+      const py = floating.y + y;
+      if (px < 0 || py < 0 || px >= canvasW || py >= canvasH) continue;
+      next[py * canvasW + px] = 1;
+    }
+  }
+  return next;
+}
+
 export function combineMasks(current: Uint8Array | null, incoming: Uint8Array, mode: SelectMode): Uint8Array | null {
   const out = new Uint8Array(incoming.length);
   let any = false;

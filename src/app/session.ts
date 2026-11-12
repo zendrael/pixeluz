@@ -3,6 +3,7 @@ import {
   RemovePaletteColorCommand,
   RenameSpriteCommand,
   SetGridCommand,
+  SetLayerLockedCommand,
   SetLayerVisibleCommand,
   ReplacePaletteCommand,
   SetPaletteColorCommand,
@@ -39,11 +40,11 @@ import type { BayerSize, BrushShape, GradientKind, InkId, SelectMode, SymmetryMo
 import { DEFAULT_BACKGROUND, DEFAULT_FOREGROUND, createSprite } from "../domain/factory";
 import { createId } from "../domain/ids";
 import { textDots } from "../domain/bitmap-font";
-import { createImage, diffSnapshot, getPixel, setPixel } from "../domain/image-buffer";
+import { cloneImage, createImage, diffSnapshot, getPixel, setPixel } from "../domain/image-buffer";
 import { MAX_BRUSH_SIZE, MAX_FRAME_MS, MAX_LAYERS, MAX_SPRITE_SIZE, MAX_ZOOM, MIN_FRAME_MS, MIN_SPRITE_SIZE, MIN_ZOOM, gridCell } from "../domain/limits";
 import { framesInPlaybackOrder, playbackBounds, stepPlayback } from "../domain/playback";
 import { rotsprite } from "../domain/rotsprite";
-import { maskBounds, nudgedPasteOrigin, pasteOrigin } from "../domain/selection";
+import { canvasMaskFromFloating, maskBounds, nudgedPasteOrigin, pasteOrigin } from "../domain/selection";
 import { editSelection, type SelectionOp } from "../domain/selection-edit";
 import { contentLayers, createCel, findCel, findLayer, paintableLayers } from "../domain/sprite";
 import { emptyTileGrid, makeTileset, paintTilePoints, rasterizeTiles, tileCel, type TileDrawMode, type TilePixelMode } from "../domain/tiles";
@@ -51,7 +52,12 @@ import type { BlendMode, ColorMode, ImageBuffer, Layer, LayerKind, PixelChange, 
 import { compositeFrame } from "../render/composite";
 import type { EditorApi } from "../tools/tool";
 import type { Command } from "../commands/command";
-import { getSelectionClipboard, setSelectionClipboard, takePasteNudge } from "./selection-clipboard";
+import {
+  getSelectionClipboard,
+  setSelectionClipboard,
+  takePasteNudge,
+  type FloatingSelection,
+} from "./selection-clipboard";
 
 export type ChangeKind = "canvas" | "chrome" | "document";
 
@@ -77,7 +83,9 @@ export class EditorSession implements EditorApi {
   gradientKind: GradientKind = "linear";
   bayer: BayerSize = 4;
   selectMode: SelectMode = "replace";
+  floodTolerance = 0;
   selection: Uint8Array | null = null;
+  floating: FloatingSelection | null = null;
   onionBefore = 0;
   onionAfter = 0;
   tileDrawMode: TileDrawMode = "tiles";
@@ -257,13 +265,8 @@ export class EditorSession implements EditorApi {
   }
 
   setSelection(mask: Uint8Array | null): void {
-    if (!mask || !mask.some((bit) => bit === 1)) {
-      if (this.selection === null) return;
-      this.selection = null;
-    } else {
-      this.selection = new Uint8Array(mask);
-    }
-    this.emit("canvas");
+    this.stampFloating();
+    this.applySelectionMask(mask);
   }
 
   invalidateCanvas(): void {
@@ -306,6 +309,7 @@ export class EditorSession implements EditorApi {
 
   beginStroke(): void {
     if (this.stroking) return;
+    this.stampFloating();
     this.stroking = true;
     this.emit("chrome");
   }
@@ -404,6 +408,12 @@ export class EditorSession implements EditorApi {
     const layer = this.doc.layers.find((item) => item.id === layerId);
     if (!layer) return;
     this.run(new SetLayerVisibleCommand(layerId, layer.visible, !layer.visible));
+  }
+
+  toggleLayerLock(layerId: string): void {
+    const layer = this.doc.layers.find((item) => item.id === layerId);
+    if (!layer) return;
+    this.run(new SetLayerLockedCommand(layerId, layer.locked, !layer.locked));
   }
 
   setActiveLayer(layerId: string): void {
@@ -786,18 +796,19 @@ export class EditorSession implements EditorApi {
 
   cutSelection(): boolean {
     if (!this.copySelection()) return false;
-    if (!this.deleteSelectionContents()) {
-      this.clearSelection();
-      return true;
-    }
-    this.clearSelection();
-    return true;
+    return this.liftSelection(false);
   }
 
   deleteSelectionContents(): boolean {
     const layer = findLayer(this.doc, this.activeLayerId);
     const mask = this.selection;
     if (!layer || (layer.kind !== "image" && layer.kind !== "reference") || !layer.visible || layer.locked || !mask) return false;
+    if (this.floating) {
+      this.floating = null;
+      this.applySelectionMask(mask);
+      this.emit("canvas");
+      return true;
+    }
     const cel = findCel(this.doc, this.activeLayerId, this.activeFrameId);
     if (!cel || mask.length !== cel.image.width * cel.image.height) return false;
     const snapshot = cel.image.data.slice();
@@ -831,40 +842,146 @@ export class EditorSession implements EditorApi {
     if (!clip || !layer || (layer.kind !== "image" && layer.kind !== "reference") || !layer.visible || layer.locked) return false;
     const cel = findCel(this.doc, this.activeLayerId, this.activeFrameId);
     if (!cel) return false;
+    this.stampFloating();
     const base = pasteOrigin(clip.x, clip.y, clip.image.width, clip.image.height, cel.image.width, cel.image.height);
     const origin = nudgedPasteOrigin(base, takePasteNudge(), clip.image.width, clip.image.height, cel.image.width, cel.image.height);
+    this.floating = {
+      image: cloneImage(clip.image),
+      mask: clip.mask.slice(),
+      x: origin.x,
+      y: origin.y,
+    };
+    this.applySelectionMask(canvasMaskFromFloating(this.floating, cel.image.width, cel.image.height));
+    this.emit("chrome");
+    return true;
+  }
+
+  liftSelection(keepSource: boolean): boolean {
+    const layer = findLayer(this.doc, this.activeLayerId);
+    const mask = this.selection;
+    if (!layer || (layer.kind !== "image" && layer.kind !== "reference") || !layer.visible || layer.locked || !mask) return false;
+    if (this.floating) return true;
+    const cel = findCel(this.doc, this.activeLayerId, this.activeFrameId);
+    if (!cel || mask.length !== cel.image.width * cel.image.height) return false;
+    const bounds = maskBounds(mask, cel.image.width, cel.image.height);
+    if (!bounds) return false;
+    const width = bounds.maxX - bounds.minX + 1;
+    const height = bounds.maxY - bounds.minY + 1;
+    const image = createImage(width, height);
+    const clip = new Uint8Array(width * height);
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        if (mask[(bounds.minY + y) * cel.image.width + bounds.minX + x] !== 1) continue;
+        clip[y * width + x] = 1;
+        const color = getPixel(cel.image, bounds.minX + x, bounds.minY + y);
+        if (color) setPixel(image, x, y, color);
+      }
+    }
+    if (!clip.some((bit) => bit === 1)) return false;
+    if (!keepSource) {
+      const snapshot = cel.image.data.slice();
+      const clear = { r: 0, g: 0, b: 0, a: 0 };
+      for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          if (clip[y * width + x] !== 1) continue;
+          setPixel(cel.image, bounds.minX + x, bounds.minY + y, clear);
+        }
+      }
+      const changes = diffSnapshot(cel.image, snapshot);
+      if (changes.length > 0) this.commitPixels(this.activeLayerId, this.activeFrameId, changes, true);
+    }
+    this.floating = { image, mask: clip, x: bounds.minX, y: bounds.minY };
+    this.applySelectionMask(canvasMaskFromFloating(this.floating, cel.image.width, cel.image.height));
+    this.emit("chrome");
+    return true;
+  }
+
+  moveFloating(dx: number, dy: number): boolean {
+    if (!this.floating) return false;
+    this.floating = { ...this.floating, x: this.floating.x + dx, y: this.floating.y + dy };
+    this.applySelectionMask(canvasMaskFromFloating(this.floating, this.doc.width, this.doc.height));
+    this.emit("canvas");
+    return true;
+  }
+
+  stampFloating(): boolean {
+    const float = this.floating;
+    if (!float) return false;
+    const layer = findLayer(this.doc, this.activeLayerId);
+    if (!layer || (layer.kind !== "image" && layer.kind !== "reference") || !layer.visible || layer.locked) {
+      this.floating = null;
+      return false;
+    }
+    const cel = findCel(this.doc, this.activeLayerId, this.activeFrameId);
+    if (!cel) {
+      this.floating = null;
+      return false;
+    }
     const snapshot = cel.image.data.slice();
     const next = new Uint8Array(cel.image.width * cel.image.height);
-    for (let y = 0; y < clip.image.height; y += 1) {
-      for (let x = 0; x < clip.image.width; x += 1) {
-        if (clip.mask[y * clip.image.width + x] !== 1) continue;
-        const px = origin.x + x;
-        const py = origin.y + y;
+    for (let y = 0; y < float.image.height; y += 1) {
+      for (let x = 0; x < float.image.width; x += 1) {
+        if (float.mask[y * float.image.width + x] !== 1) continue;
+        const px = float.x + x;
+        const py = float.y + y;
         if (px < 0 || py < 0 || px >= cel.image.width || py >= cel.image.height) continue;
-        const color = getPixel(clip.image, x, y);
+        const color = getPixel(float.image, x, y);
         if (!color) continue;
         setPixel(cel.image, px, py, color);
         next[py * cel.image.width + px] = 1;
       }
     }
-    if (!next.some((bit) => bit === 1)) return false;
+    this.floating = null;
     const changes = diffSnapshot(cel.image, snapshot);
     if (changes.length > 0) this.commitPixels(this.activeLayerId, this.activeFrameId, changes, true);
-    this.setSelection(next);
+    this.applySelectionMask(next.some((bit) => bit === 1) ? next : null);
+    this.emit("chrome");
     return true;
   }
 
   transformSelection(op: SelectionOp, dx = 0, dy = 0): void {
     const layer = findLayer(this.doc, this.activeLayerId);
+    if (!layer || (layer.kind !== "image" && layer.kind !== "reference") || !layer.visible || layer.locked) return;
+    if (this.floating) {
+      const placed = createImage(this.doc.width, this.doc.height);
+      const mask = canvasMaskFromFloating(this.floating, this.doc.width, this.doc.height);
+      for (let y = 0; y < this.floating.image.height; y += 1) {
+        for (let x = 0; x < this.floating.image.width; x += 1) {
+          if (this.floating.mask[y * this.floating.image.width + x] !== 1) continue;
+          const color = getPixel(this.floating.image, x, y);
+          if (color) setPixel(placed, this.floating.x + x, this.floating.y + y, color);
+        }
+      }
+      const next = editSelection(placed, mask, op, dx, dy);
+      if (!next) return;
+      const bounds = maskBounds(next, placed.width, placed.height);
+      if (!bounds) return;
+      const width = bounds.maxX - bounds.minX + 1;
+      const height = bounds.maxY - bounds.minY + 1;
+      const image = createImage(width, height);
+      const clip = new Uint8Array(width * height);
+      for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          if (next[(bounds.minY + y) * placed.width + bounds.minX + x] !== 1) continue;
+          clip[y * width + x] = 1;
+          const color = getPixel(placed, bounds.minX + x, bounds.minY + y);
+          if (color) setPixel(image, x, y, color);
+        }
+      }
+      this.floating = { image, mask: clip, x: bounds.minX, y: bounds.minY };
+      this.applySelectionMask(canvasMaskFromFloating(this.floating, this.doc.width, this.doc.height));
+      this.emit("canvas");
+      return;
+    }
     const mask = this.selection;
-    if (!layer || (layer.kind !== "image" && layer.kind !== "reference") || !layer.visible || layer.locked || !mask) return;
+    if (!mask) return;
     const cel = findCel(this.doc, this.activeLayerId, this.activeFrameId);
     if (!cel) return;
     const snapshot = cel.image.data.slice();
     const next = editSelection(cel.image, mask, op, dx, dy);
     const changes = diffSnapshot(cel.image, snapshot);
     if (changes.length > 0) this.commitPixels(this.activeLayerId, this.activeFrameId, changes, true);
-    this.setSelection(next);
+    this.applySelectionMask(next);
   }
 
   captureBrush(): boolean {
@@ -890,7 +1007,17 @@ export class EditorSession implements EditorApi {
   }
 
   clearSelection(): void {
-    this.setSelection(null);
+    this.stampFloating();
+    this.applySelectionMask(null);
+  }
+
+  private applySelectionMask(mask: Uint8Array | null): void {
+    if (!mask || !mask.some((bit) => bit === 1)) {
+      this.selection = null;
+    } else {
+      this.selection = new Uint8Array(mask);
+    }
+    this.emit("canvas");
   }
 
   setBrushSize(value: number): void {
@@ -956,6 +1083,13 @@ export class EditorSession implements EditorApi {
     this.emit("chrome");
   }
 
+  setFloodTolerance(value: number): void {
+    const next = Math.max(0, Math.min(255, Math.round(value)));
+    if (next === this.floodTolerance) return;
+    this.floodTolerance = next;
+    this.emit("chrome");
+  }
+
   loadPalette(colors: Rgba[]): void {
     if (colors.length === 0 || colors.length > 256) return;
     this.run(new ReplacePaletteCommand(colors));
@@ -998,6 +1132,7 @@ export class EditorSession implements EditorApi {
     this.activeLayerId = doc.layers.find((layer) => layer.kind === "image")?.id ?? doc.layers[0]?.id ?? "";
     this.preview = null;
     this.selection = null;
+    this.floating = null;
     this.cache = null;
     this.edits = 0;
     this.exportedEdit = -1;

@@ -152,6 +152,8 @@ describe("fase 5", () => {
     expect(session.addLayer()).toBe(true);
     const targetId = session.activeLayerId;
     expect(session.pasteClipboard()).toBe(true);
+    expect(session.floating).not.toBeNull();
+    expect(session.stampFloating()).toBe(true);
     const target = findCel(session.doc, targetId, session.activeFrameId);
     expect(target && getPixel(target.image, 1, 1)).toEqual(red);
     expect(getPixel(source.image, 1, 1)).toEqual(red);
@@ -206,6 +208,7 @@ describe("fase 5", () => {
     sourceSession.setSelection(mask);
     expect(sourceSession.copySelection()).toBe(true);
     expect(targetSession.pasteClipboard()).toBe(true);
+    expect(targetSession.stampFloating()).toBe(true);
     const target = findCel(targetSession.doc, targetSession.activeLayerId, targetSession.activeFrameId);
     expect(target && getPixel(target.image, 1, 1)).toEqual(red);
     expect(getPixel(source.image, 1, 1)).toEqual(red);
@@ -225,6 +228,7 @@ describe("fase 5", () => {
     sourceSession.setSelection(mask);
     expect(sourceSession.copySelection()).toBe(true);
     expect(targetSession.pasteClipboard()).toBe(true);
+    expect(targetSession.stampFloating()).toBe(true);
     const target = findCel(targetSession.doc, targetSession.activeLayerId, targetSession.activeFrameId);
     expect(target && getPixel(target.image, 3, 3)).toEqual(red);
     expect(getPixel(source.image, 20, 20)).toEqual(red);
@@ -243,8 +247,8 @@ describe("fase 5", () => {
     session.setSelection(mask);
     expect(session.cutSelection()).toBe(true);
     expect(getPixel(cel.image, 1, 1)).toEqual(clear);
-    expect(session.selection).toBeNull();
-    expect(session.pasteClipboard()).toBe(true);
+    expect(session.floating).not.toBeNull();
+    expect(session.stampFloating()).toBe(true);
     expect(getPixel(cel.image, 1, 1)).toEqual(red);
   });
 
@@ -277,8 +281,40 @@ describe("fase 5", () => {
     session.setSelection(mask);
     expect(session.copySelection()).toBe(true);
     expect(session.pasteClipboard()).toBe(true);
+    expect(session.stampFloating()).toBe(true);
     expect(getPixel(cel.image, 0, 0)).toEqual(red);
     expect(session.pasteClipboard()).toBe(true);
+    expect(session.floating?.x).toBe(1);
+    expect(session.floating?.y).toBe(1);
+    expect(session.stampFloating()).toBe(true);
     expect(getPixel(cel.image, 1, 1)).toEqual(red);
+  });
+
+  it("trava a camada pela sessão e desfaz", () => {
+    const session = new EditorSession(createSprite(2, 2));
+    const layer = session.doc.layers[0]!;
+    expect(layer.locked).toBe(false);
+    session.toggleLayerLock(layer.id);
+    expect(layer.locked).toBe(true);
+    session.undo();
+    expect(layer.locked).toBe(false);
+  });
+
+  it("levanta a seleção e carimba ao confirmar", () => {
+    const session = new EditorSession(createSprite(4, 4));
+    const cel = findCel(session.doc, session.activeLayerId, session.activeFrameId);
+    if (!cel) throw new Error("cel ausente");
+    setPixel(cel.image, 1, 1, red);
+    const mask = new Uint8Array(16);
+    mask[1 * 4 + 1] = 1;
+    session.setSelection(mask);
+    expect(session.liftSelection(false)).toBe(true);
+    expect(getPixel(cel.image, 1, 1)).toEqual(clear);
+    expect(session.floating).not.toBeNull();
+    expect(session.moveFloating(1, 0)).toBe(true);
+    expect(session.floating?.x).toBe(2);
+    expect(session.stampFloating()).toBe(true);
+    expect(getPixel(cel.image, 2, 1)).toEqual(red);
+    expect(session.floating).toBeNull();
   });
 });

@@ -104,7 +104,7 @@ export class SelectTool implements Tool {
     if (!cel) return;
     const placed = placePixel(ctx.spriteX, ctx.spriteY, cel.image.width, cel.image.height, ctx.session.tile);
     if (!placed) return;
-    const mask = floodMask(cel.image, placed[0], placed[1]);
+    const mask = floodMask(cel.image, placed[0], placed[1], ctx.session.floodTolerance);
     if (!mask) return;
     ctx.session.setSelection(combineMasks(this.before, mask, this.mode));
   }

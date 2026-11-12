@@ -1,5 +1,5 @@
 import { getPixel, setPixel } from "../domain/image-buffer";
-import { rgbaEqual } from "../domain/color";
+import { rgbaEqual, rgbaWithinTolerance } from "../domain/color";
 import type { ImageBuffer, PixelChange, Rgba } from "../domain/types";
 
 export function linePixels(x0: number, y0: number, x1: number, y1: number): Array<[number, number]> {
@@ -208,9 +208,10 @@ export function constrainSquare(x0: number, y0: number, x1: number, y1: number):
   return [x0 + sx * side, y0 + sy * side];
 }
 
-export function floodMask(image: ImageBuffer, x: number, y: number): Uint8Array | null {
+export function floodMask(image: ImageBuffer, x: number, y: number, tolerance = 0): Uint8Array | null {
   const target = getPixel(image, x, y);
   if (!target) return null;
+  const limit = Math.max(0, Math.min(255, Math.round(tolerance)));
   const mask = new Uint8Array(image.width * image.height);
   const stack: Array<[number, number]> = [[x, y]];
   let any = false;
@@ -222,7 +223,7 @@ export function floodMask(image: ImageBuffer, x: number, y: number): Uint8Array 
     const index = cy * image.width + cx;
     if (mask[index]) continue;
     const current = getPixel(image, cx, cy);
-    if (!current || !rgbaEqual(current, target)) continue;
+    if (!current || !rgbaWithinTolerance(current, target, limit)) continue;
     mask[index] = 1;
     any = true;
     stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
@@ -230,9 +231,10 @@ export function floodMask(image: ImageBuffer, x: number, y: number): Uint8Array 
   return any ? mask : null;
 }
 
-export function floodFill(image: ImageBuffer, x: number, y: number, color: Rgba): PixelChange[] {
+export function floodFill(image: ImageBuffer, x: number, y: number, color: Rgba, tolerance = 0): PixelChange[] {
   const target = getPixel(image, x, y);
   if (!target || rgbaEqual(target, color)) return [];
+  const limit = Math.max(0, Math.min(255, Math.round(tolerance)));
   const seen = new Uint8Array(image.width * image.height);
   const changes: PixelChange[] = [];
   const stack: Array<[number, number]> = [[x, y]];
@@ -245,9 +247,9 @@ export function floodFill(image: ImageBuffer, x: number, y: number, color: Rgba)
     if (seen[index]) continue;
     seen[index] = 1;
     const current = getPixel(image, cx, cy);
-    if (!current || !rgbaEqual(current, target)) continue;
+    if (!current || !rgbaWithinTolerance(current, target, limit)) continue;
     setPixel(image, cx, cy, color);
-    changes.push({ x: cx, y: cy, before: { ...target }, after: { ...color } });
+    changes.push({ x: cx, y: cy, before: { ...current }, after: { ...color } });
     stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
   }
   return changes;

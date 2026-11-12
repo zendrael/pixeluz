@@ -3,7 +3,7 @@ import type { BayerSize } from "../domain/draw-options";
 import type { BlendMode, ColorMode, LoopDirection, Rgba } from "../domain/types";
 import { cropImage, sliceKeyAt } from "../domain/slices";
 import { EditorSession, type ChangeKind } from "./session";
-import { TRANSPARENT, hexToRgba, rgbaToHex } from "../domain/color";
+import { TRANSPARENT, hexToRgba, hsvToRgb, rgbaToHex, rgbToHsv } from "../domain/color";
 import { DEFAULT_BACKGROUND, DEFAULT_FOREGROUND, createSprite } from "../domain/factory";
 import { bytesToBlob } from "../io/bytes";
 import { downloadBlob, downloadDataUrl, filePickerAvailable, OPEN_FILE_TYPES, PALETTE_FILE_TYPES, pickAndSave, pickFile, pngDataUrl, PROJECT_FILE_TYPES, safeFilename, type FilePickerType } from "../io/files";
@@ -188,6 +188,9 @@ export class Controller {
     for (const input of this.root.querySelectorAll<HTMLInputElement>("[data-color-role]")) {
       input.addEventListener("input", () => this.onColorInput(input), { signal });
     }
+    for (const input of this.root.querySelectorAll<HTMLInputElement>("[data-color-channel]")) {
+      input.addEventListener("change", () => this.onColorChannel(input), { signal });
+    }
     this.required<HTMLFormElement>("#form-new").addEventListener("submit", (event) => {
       event.preventDefault();
       void this.createSprite();
@@ -277,6 +280,7 @@ export class Controller {
     }
     if (target.dataset.frameIndex) {
       this.session.setActiveFrame(Number(target.dataset.frameIndex));
+      if (target.dataset.layerId) this.session.setActiveLayer(target.dataset.layerId);
       return;
     }
     if (target.dataset.tile) {
@@ -403,7 +407,8 @@ export class Controller {
         void this.browseFiles();
         break;
       case "play":
-        this.session.togglePlayback();
+        if (this.session.floating) this.session.stampFloating();
+        else this.session.togglePlayback();
         break;
       case "add-frame":
         this.session.addFrame(true);
@@ -453,6 +458,12 @@ export class Controller {
         if (target.dataset.layerId) {
           this.session.setActiveLayer(target.dataset.layerId);
           this.session.toggleLayer(target.dataset.layerId);
+        }
+        break;
+      case "toggle-layer-lock":
+        if (target.dataset.layerId) {
+          this.session.setActiveLayer(target.dataset.layerId);
+          this.session.toggleLayerLock(target.dataset.layerId);
         }
         break;
       case "select-layer":
@@ -567,9 +578,26 @@ export class Controller {
 
   private onColorInput(input: HTMLInputElement): void {
     const current = input.dataset.colorRole === "bg" ? this.session.background : this.session.foreground;
-    const color = hexToRgba(input.value, current.a || 255);
+    const color = hexToRgba(input.value, current.a);
     if (input.dataset.colorRole === "bg") this.session.setBackground(color);
     else this.session.setForeground(color);
+  }
+
+  private onColorChannel(input: HTMLInputElement): void {
+    const role = input.dataset.colorChannel === "bg" ? "bg" : "fg";
+    const channel = input.dataset.channel;
+    const current = role === "bg" ? this.session.background : this.session.foreground;
+    const value = Number(input.value);
+    let next = { ...current };
+    if (channel === "a") next.a = Math.max(0, Math.min(255, Math.round(value)));
+    else if (channel === "h" || channel === "s" || channel === "v") {
+      const [h, s, v] = rgbToHsv(current.r, current.g, current.b);
+      const hsv = { h, s, v, [channel]: value };
+      const [r, g, b] = hsvToRgb(hsv.h, hsv.s, hsv.v);
+      next = { r, g, b, a: current.a };
+    } else return;
+    if (role === "bg") this.session.setBackground(next);
+    else this.session.setForeground(next);
   }
 
   private onShortcut(action: Shortcut): void {
@@ -587,7 +615,8 @@ export class Controller {
         void this.save();
         break;
       case "play":
-        this.session.togglePlayback();
+        if (this.session.floating) this.session.stampFloating();
+        else this.session.togglePlayback();
         break;
       case "frame":
         this.session.stepFrame(action.delta);
@@ -1327,7 +1356,7 @@ export class Controller {
     if (kind === "chrome") return;
     renderLayers(this.hosts(".layers-host"), this.session.doc, this.session.activeLayerId);
     renderSlices(this.hosts(".slices-host"), this.session.doc.slices);
-    renderFrames(this.hosts(".timeline-frames"), this.session.doc, this.session.activeFrameIndex);
+    renderFrames(this.hosts(".timeline-frames"), this.session.doc, this.session.activeFrameIndex, this.session.activeLayerId);
     renderTags(this.hosts(".tags-host"), this.session.doc);
     setDuration(this.root, this.session.doc.frames[this.session.activeFrameIndex]?.durationMs ?? 100);
   }
@@ -1435,6 +1464,7 @@ export class Controller {
     if (option === "brush-size") this.session.setBrushSize(Number(value));
     else if (option === "brush-angle") this.session.setBrushAngle(Number(value));
     else if (option === "brush-opacity") this.session.setBrushOpacity(Number(value));
+    else if (option === "flood-tolerance") this.session.setFloodTolerance(Number(value));
     else if (option === "pixel-perfect") this.session.setPixelPerfect(checked);
     else if (option === "brush-shape") this.pick(value, ["square", "circle", "custom"] as const, (shape) => this.session.setBrushShape(shape));
     else if (option === "ink") this.pick(value, ["simple", "alpha", "copy", "lock-alpha", "shading"] as const, (ink) => this.session.setInk(ink));
@@ -1460,6 +1490,7 @@ export class Controller {
     this.syncField("[data-option='gradient']", this.session.gradientKind);
     this.syncField("[data-option='bayer']", String(this.session.bayer));
     this.syncField("[data-option='select-mode']", this.session.selectMode);
+    this.syncField("[data-option='flood-tolerance']", String(this.session.floodTolerance));
     for (const input of this.root.querySelectorAll<HTMLInputElement>("[data-option='pixel-perfect']")) {
       if (document.activeElement === input) continue;
       input.checked = this.session.pixelPerfect;
@@ -1506,16 +1537,23 @@ export class Controller {
   }
 
   private updateColors(): void {
-    this.paintColorInputs("fg", rgbaToHex(this.session.foreground), this.session.foreground.a === 0);
-    this.paintColorInputs("bg", rgbaToHex(this.session.background), this.session.background.a === 0);
+    this.paintColorInputs("fg", this.session.foreground);
+    this.paintColorInputs("bg", this.session.background);
   }
 
-  private paintColorInputs(role: string, hex: string, transparent: boolean): void {
+  private paintColorInputs(role: string, color: Rgba): void {
+    const hex = rgbaToHex(color);
+    const [h, s, v] = rgbToHsv(color.r, color.g, color.b);
     for (const input of this.root.querySelectorAll<HTMLInputElement>(`[data-color-role="${role}"]`)) {
       if (document.activeElement !== input) input.value = hex;
     }
-    for (const label of this.root.querySelectorAll<HTMLElement>(`[data-alpha="${role}"]`)) {
-      label.textContent = transparent ? text.transparent : "";
+    for (const input of this.root.querySelectorAll<HTMLInputElement>(`[data-color-channel="${role}"]`)) {
+      if (document.activeElement === input) continue;
+      const channel = input.dataset.channel;
+      if (channel === "a") input.value = String(color.a);
+      else if (channel === "h") input.value = String(Math.round(h));
+      else if (channel === "s") input.value = String(Math.round(s));
+      else if (channel === "v") input.value = String(Math.round(v));
     }
   }
 

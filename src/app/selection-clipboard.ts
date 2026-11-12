@@ -8,6 +8,8 @@ export type SelectionClipboard = {
   y: number;
 };
 
+export type FloatingSelection = SelectionClipboard;
+
 let shared: SelectionClipboard | null = null;
 let pasteStreak = 0;
 
