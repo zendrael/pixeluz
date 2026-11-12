@@ -1,5 +1,5 @@
 import "bootstrap/dist/css/bootstrap.min.css";
-import "@fortawesome/fontawesome-free/css/all.min.css";
+import "@phosphor-icons/web/bold";
 import "bootstrap";
 import "./styles.css";
 import { Controller, type ControllerBoot } from "./app/controller";

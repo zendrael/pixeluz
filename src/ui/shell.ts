@@ -1,18 +1,15 @@
 import { MAX_SPRITE_SIZE, MIN_SPRITE_SIZE } from "../domain/limits";
 import { fileInputAccept, OPEN_FILE_TYPES, PALETTE_FILE_TYPES } from "../io/files";
+import { icon } from "./icons";
 import { currentLocale, text, blendLabels } from "./i18n";
 
-function fa(icon: string): string {
-  return `<i class="fa-solid ${icon}" aria-hidden="true"></i>`;
-}
-
 function closeButton(dismiss: "modal" | "offcanvas"): string {
-  return `<button type="button" class="btn btn-sm btn-outline-secondary icon-btn ms-auto" data-bs-dismiss="${dismiss}" aria-label="${text.close}">${fa("fa-xmark")}</button>`;
+  return `<button type="button" class="btn btn-sm btn-outline-secondary icon-btn ms-auto" data-bs-dismiss="${dismiss}" aria-label="${text.close}">${icon("x")}</button>`;
 }
 
-function iconButton(action: string, icon: string, label: string, id = ""): string {
+function iconButton(action: string, name: string, label: string, id = ""): string {
   const identity = id ? ` id="${id}"` : "";
-  return `<button type="button" class="btn btn-outline-secondary btn-sm icon-btn"${identity} data-action="${action}" title="${label}" aria-label="${label}"><i class="fa-solid ${icon}" aria-hidden="true"></i></button>`;
+  return `<button type="button" class="btn btn-outline-secondary btn-sm icon-btn"${identity} data-action="${action}" title="${label}" aria-label="${label}">${icon(name)}</button>`;
 }
 
 function propRow(label: string, control: string): string {
@@ -98,13 +95,13 @@ function layerPanel(): string {
   return `<div class="p-2 border-top">
     <div class="d-flex align-items-center gap-1 mb-2">
       <h2 class="h6 mb-0 me-auto">${text.layers}</h2>
-      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="add-layer" title="${text.addLayer}" aria-label="${text.addLayer}">${fa("fa-plus")}</button>
-      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="add-group" title="${text.addGroup}" aria-label="${text.addGroup}">${fa("fa-layer-group")}</button>
-      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="add-reference" title="${text.addReference}" aria-label="${text.addReference}">${fa("fa-image")}</button>
-      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="add-tilemap" title="${text.addTilemap}" aria-label="${text.addTilemap}">${fa("fa-table-cells")}</button>
-      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="delete-layer" title="${text.deleteLayer}" aria-label="${text.deleteLayer}">${fa("fa-trash")}</button>
-      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="layer-up" title="${text.layerUp}" aria-label="${text.layerUp}">${fa("fa-arrow-up")}</button>
-      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="layer-down" title="${text.layerDown}" aria-label="${text.layerDown}">${fa("fa-arrow-down")}</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="add-layer" title="${text.addLayer}" aria-label="${text.addLayer}">${icon("plus")}</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="add-group" title="${text.addGroup}" aria-label="${text.addGroup}">${icon("stack")}</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="add-reference" title="${text.addReference}" aria-label="${text.addReference}">${icon("image")}</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="add-tilemap" title="${text.addTilemap}" aria-label="${text.addTilemap}">${icon("grid-four")}</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="delete-layer" title="${text.deleteLayer}" aria-label="${text.deleteLayer}">${icon("trash")}</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="layer-up" title="${text.layerUp}" aria-label="${text.layerUp}">${icon("arrow-up")}</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="layer-down" title="${text.layerDown}" aria-label="${text.layerDown}">${icon("arrow-down")}</button>
     </div>
     <div class="layers-host"></div>
     ${propTable(`
@@ -131,8 +128,8 @@ function optionSelect(option: string, label: string, choices: Array<[string, str
   return `<label class="d-flex align-items-center gap-1 mb-0 text-nowrap">${label}<select class="form-select form-select-sm" data-option="${option}">${options}</select></label>`;
 }
 
-function iconOnly(action: string, icon: string, label: string): string {
-  return `<button type="button" class="btn btn-sm btn-outline-secondary icon-btn" data-action="${action}" title="${label}" aria-label="${label}"><i class="fa-solid ${icon}" aria-hidden="true"></i></button>`;
+function iconOnly(action: string, name: string, label: string): string {
+  return `<button type="button" class="btn btn-sm btn-outline-secondary icon-btn" data-action="${action}" title="${label}" aria-label="${label}">${icon(name)}</button>`;
 }
 
 function previewPanel(): string {
@@ -163,52 +160,52 @@ function optionsBar(): string {
     ${optionGroup("tolerance", `<label class="d-flex align-items-center gap-1 mb-0 text-nowrap">${text.tolerance}<input data-option="flood-tolerance" type="number" min="0" max="255" value="0" class="form-control form-control-sm" style="width:4.5rem" /></label>`)}
     ${optionGroup("select", optionSelect("select-mode", text.selection, [["replace", text.selectReplace], ["add", text.selectAdd], ["subtract", text.selectSubtract], ["intersect", text.selectIntersect]]))}
     ${optionGroup("transform", `
-      ${iconOnly("flip-h", "fa-right-left", text.flipH)}
-      ${iconOnly("flip-v", "fa-up-down", text.flipV)}
-      ${iconOnly("rotate-selection", "fa-arrow-rotate-right", text.rotate)}
-      ${iconOnly("scale-up", "fa-up-right-and-down-left-from-center", text.scaleUp)}
-      ${iconOnly("scale-down", "fa-down-left-and-up-right-to-center", text.scaleDown)}
-      ${iconOnly("expand-selection", "fa-expand", text.expandSelection)}
-      ${iconOnly("contract-selection", "fa-compress", text.contractSelection)}
-      ${iconOnly("invert-selection", "fa-circle-half-stroke", text.invertSelection)}
-      ${iconOnly("border-selection", "fa-border-all", text.borderSelection)}
+      ${iconOnly("flip-h", "flip-horizontal", text.flipH)}
+      ${iconOnly("flip-v", "flip-vertical", text.flipV)}
+      ${iconOnly("rotate-selection", "arrow-clockwise", text.rotate)}
+      ${iconOnly("scale-up", "arrows-out", text.scaleUp)}
+      ${iconOnly("scale-down", "arrows-in", text.scaleDown)}
+      ${iconOnly("expand-selection", "arrows-out-simple", text.expandSelection)}
+      ${iconOnly("contract-selection", "arrows-in-simple", text.contractSelection)}
+      ${iconOnly("invert-selection", "circle-half", text.invertSelection)}
+      ${iconOnly("border-selection", "bounding-box", text.borderSelection)}
       <label class="d-flex align-items-center gap-1 mb-0 text-nowrap small">${text.freeRotate}<input data-option="free-rotate" type="number" min="-180" max="180" value="15" class="form-control form-control-sm" style="width:4rem" /></label>
-      ${iconOnly("apply-free-rotate", "fa-rotate", text.applyFreeRotate)}
+      ${iconOnly("apply-free-rotate", "arrow-clockwise", text.applyFreeRotate)}
       <label class="d-flex align-items-center gap-1 mb-0 text-nowrap small">${text.freeScale}<input data-option="free-scale" type="number" min="25" max="400" value="150" class="form-control form-control-sm" style="width:4.5rem" /></label>
-      ${iconOnly("apply-free-scale", "fa-maximize", text.applyFreeScale)}
-      ${iconOnly("copy-selection", "fa-copy", text.copySelection)}
-      ${iconOnly("cut-selection", "fa-scissors", text.cutSelection)}
-      ${iconOnly("paste-selection", "fa-paste", text.pasteSelection)}
-      ${iconOnly("delete-selection", "fa-trash-can", text.deleteSelection)}
-      ${iconOnly("clear-selection", "fa-xmark", text.clearSelection)}
-      ${iconOnly("brush-from-selection", "fa-paintbrush", text.brushFromSelection)}
+      ${iconOnly("apply-free-scale", "corners-out", text.applyFreeScale)}
+      ${iconOnly("copy-selection", "copy", text.copySelection)}
+      ${iconOnly("cut-selection", "scissors", text.cutSelection)}
+      ${iconOnly("paste-selection", "clipboard-text", text.pasteSelection)}
+      ${iconOnly("delete-selection", "trash", text.deleteSelection)}
+      ${iconOnly("clear-selection", "x", text.clearSelection)}
+      ${iconOnly("brush-from-selection", "paint-brush", text.brushFromSelection)}
     `)}
   </div>`;
 }
 
 function timelineToolbar(): string {
-  const icon = (action: string, iconName: string, label: string) =>
-    `<button type="button" class="btn btn-sm btn-outline-secondary icon-btn" data-action="${action}" title="${label}" aria-label="${label}">${fa(iconName)}</button>`;
+  const actionIcon = (action: string, name: string, label: string) =>
+    `<button type="button" class="btn btn-sm btn-outline-secondary icon-btn" data-action="${action}" title="${label}" aria-label="${label}">${icon(name)}</button>`;
   return `<div class="timeline-toolbar d-flex flex-wrap align-items-center gap-1 p-2">
-    ${icon("first-frame", "fa-backward-step", text.firstFrame)}
-    ${icon("prev-frame", "fa-chevron-left", text.prevFrame)}
-    ${icon("play", "fa-play", text.play)}
-    ${icon("next-frame", "fa-chevron-right", text.nextFrame)}
-    ${icon("last-frame", "fa-forward-step", text.lastFrame)}
+    ${actionIcon("first-frame", "skip-back", text.firstFrame)}
+    ${actionIcon("prev-frame", "caret-left", text.prevFrame)}
+    ${actionIcon("play", "play", text.play)}
+    ${actionIcon("next-frame", "caret-right", text.nextFrame)}
+    ${actionIcon("last-frame", "skip-forward", text.lastFrame)}
     <label class="small text-secondary d-flex align-items-center gap-1 mb-0">${text.duration}
       <input data-action="duration" type="number" min="20" max="5000" step="10" class="form-control form-control-sm" style="width:5.5rem" value="100" />
       ms
     </label>
-    <button type="button" class="btn btn-sm btn-outline-secondary icon-btn" data-action="toggle-frame-edit" title="${text.frameActions}" aria-label="${text.frameActions}" aria-expanded="false">${fa("fa-ellipsis")}</button>
+    <button type="button" class="btn btn-sm btn-outline-secondary icon-btn" data-action="toggle-frame-edit" title="${text.frameActions}" aria-label="${text.frameActions}" aria-expanded="false">${icon("dots-three")}</button>
     <div class="timeline-more d-flex flex-wrap align-items-center gap-1" hidden>
-      ${icon("add-frame", "fa-plus", text.addFrame)}
-      ${icon("duplicate-frame", "fa-copy", text.duplicateFrame)}
-      ${icon("delete-frame", "fa-trash", text.deleteFrame)}
-      ${icon("frame-earlier", "fa-arrow-left", text.moveFrameBack)}
-      ${icon("frame-later", "fa-arrow-right", text.moveFrameForward)}
-      ${icon("reverse-range", "fa-arrow-right-arrow-left", text.reverseRange)}
-      ${icon("copy-cels", "fa-clipboard", text.copyCels)}
-      ${icon("add-tag", "fa-tag", text.addTag)}
+      ${actionIcon("add-frame", "plus", text.addFrame)}
+      ${actionIcon("duplicate-frame", "copy", text.duplicateFrame)}
+      ${actionIcon("delete-frame", "trash", text.deleteFrame)}
+      ${actionIcon("frame-earlier", "arrow-left", text.moveFrameBack)}
+      ${actionIcon("frame-later", "arrow-right", text.moveFrameForward)}
+      ${actionIcon("reverse-range", "arrows-left-right", text.reverseRange)}
+      ${actionIcon("copy-cels", "clipboard", text.copyCels)}
+      ${actionIcon("add-tag", "tag", text.addTag)}
       <label class="small text-secondary d-flex align-items-center gap-1 mb-0">${text.onionBefore}
         <input data-field="onion-before" type="number" min="0" max="8" value="0" class="form-control form-control-sm" style="width:3.5rem" />
       </label>
@@ -225,7 +222,7 @@ function timelineToolbar(): string {
       <label class="small text-secondary d-flex align-items-center gap-1 mb-0">${text.onionTintAfter}
         <input data-field="onion-tint-after" type="color" value="#ff7850" class="form-control form-control-sm form-control-color" style="width:2.5rem;padding:0.15rem" />
       </label>
-      ${icon("anim-preview", "fa-clapperboard", text.openAnimPreview)}
+      ${actionIcon("anim-preview", "film-slate", text.openAnimPreview)}
     </div>
   </div>
   <div class="tags-host px-2"></div>
@@ -253,11 +250,11 @@ export function mountShell(root: HTMLElement): void {
       <input id="doc-name" class="form-control form-control-sm doc-name" aria-label="Nome" autocomplete="off" />
       <div id="flash" class="small text-nowrap" role="status"></div>
       <div class="header-actions d-flex gap-1 overflow-auto flex-nowrap ms-auto">
-        ${iconButton("new", "fa-file-circle-plus", text.newSprite, "btn-new")}
-        ${iconButton("open", "fa-folder-open", text.open)}
-        ${iconButton("save", "fa-floppy-disk", text.save, "btn-save")}
+        ${iconButton("new", "file-plus", text.newSprite, "btn-new")}
+        ${iconButton("open", "folder-open", text.open)}
+        ${iconButton("save", "floppy-disk", text.save, "btn-save")}
         <div class="dropdown">
-          <button type="button" class="btn btn-outline-secondary btn-sm icon-btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' title="${text.exportMenu}" aria-label="${text.exportMenu}"><i class="fa-solid fa-file-export" aria-hidden="true"></i></button>
+          <button type="button" class="btn btn-outline-secondary btn-sm icon-btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' title="${text.exportMenu}" aria-label="${text.exportMenu}">${icon("export")}</button>
           <ul class="dropdown-menu dropdown-menu-end">
             <li><button type="button" class="dropdown-item" data-action="export">${text.exportPng}</button></li>
             <li><button type="button" class="dropdown-item" data-action="export-gif">${text.exportGif}</button></li>
@@ -267,13 +264,13 @@ export function mountShell(root: HTMLElement): void {
             <li><button type="button" class="dropdown-item" data-action="export-ase">${text.exportAse}</button></li>
           </ul>
         </div>
-        ${iconButton("download", "fa-download", text.download, "btn-download")}
-        ${iconButton("undo", "fa-rotate-left", text.undo, "btn-undo")}
-        ${iconButton("redo", "fa-rotate-right", text.redo, "btn-redo")}
-        ${iconButton("shortcuts", "fa-keyboard", text.shortcuts, "btn-shortcuts")}
-        ${iconButton("grid", "fa-table-cells", text.grid, "btn-grid")}
-        ${iconButton("fit", "fa-expand", text.fit, "btn-fit")}
-        ${iconButton("settings", "fa-gear", text.settings, "btn-settings")}
+        ${iconButton("download", "download-simple", text.download, "btn-download")}
+        ${iconButton("undo", "arrow-counter-clockwise", text.undo, "btn-undo")}
+        ${iconButton("redo", "arrow-clockwise", text.redo, "btn-redo")}
+        ${iconButton("shortcuts", "keyboard", text.shortcuts, "btn-shortcuts")}
+        ${iconButton("grid", "grid-four", text.grid, "btn-grid")}
+        ${iconButton("fit", "arrows-out", text.fit, "btn-fit")}
+        ${iconButton("settings", "gear", text.settings, "btn-settings")}
       </div>
     </header>
     <div id="doc-tabs" class="doc-tabs d-flex align-items-center gap-1 overflow-auto border-bottom bg-body px-2"></div>
@@ -284,7 +281,7 @@ export function mountShell(root: HTMLElement): void {
       <aside class="side-panel d-none d-lg-flex flex-column border-start bg-body">
         <div class="panel-resize-x" data-resize="side" role="separator" aria-orientation="vertical" aria-label="${text.resizePanel}"></div>
         <div class="d-flex align-items-center gap-1 px-2 pt-2">
-          <button type="button" class="btn btn-sm btn-outline-secondary panel-toggle" data-action="toggle-panel" data-panel="side" title="${text.minimizePanel}" aria-label="${text.minimizePanel}">${fa("fa-chevron-right")}</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary panel-toggle" data-action="toggle-panel" data-panel="side" title="${text.minimizePanel}" aria-label="${text.minimizePanel}">${icon("caret-right")}</button>
           <span class="small text-secondary panel-label">${text.preview}</span>
         </div>
         <div class="panel-body overflow-auto">
@@ -306,7 +303,7 @@ export function mountShell(root: HTMLElement): void {
     <section class="timeline-desktop timeline-host d-none d-lg-flex flex-column border-top bg-body" aria-label="${text.frames}">
       <div class="panel-resize-y" data-resize="timeline" role="separator" aria-orientation="horizontal" aria-label="${text.resizePanel}"></div>
       <div class="d-flex align-items-center gap-1 px-2 pt-1">
-        <button type="button" class="btn btn-sm btn-outline-secondary panel-toggle" data-action="toggle-panel" data-panel="timeline" title="${text.minimizePanel}" aria-label="${text.minimizePanel}">${fa("fa-chevron-down")}</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary panel-toggle" data-action="toggle-panel" data-panel="timeline" title="${text.minimizePanel}" aria-label="${text.minimizePanel}">${icon("caret-down")}</button>
         <span class="small text-secondary panel-label">${text.frames}</span>
       </div>
       <div class="timeline-body overflow-auto d-flex flex-column flex-grow-1">
@@ -508,7 +505,7 @@ export function mountShell(root: HTMLElement): void {
               <canvas id="anim-preview-canvas" class="anim-preview-canvas" width="32" height="32"></canvas>
             </div>
             <div class="d-flex flex-wrap align-items-center gap-2">
-              <button type="button" class="btn btn-sm btn-outline-secondary" data-action="anim-preview-toggle" aria-label="${text.play}">${fa("fa-play")}</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-action="anim-preview-toggle" aria-label="${text.play}">${icon("play")}</button>
               <label class="small text-secondary d-flex align-items-center gap-1 mb-0">${text.animSpeed}
                 <input id="anim-preview-speed" type="number" min="0.25" max="4" step="0.25" value="1" class="form-control form-control-sm" style="width:4.5rem" />
                 ×

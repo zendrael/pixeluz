@@ -25,6 +25,7 @@ import { Viewport } from "../render/viewport";
 import { createTools } from "../tools/create-tools";
 import type { Tool, ToolId } from "../tools/tool";
 import { escapeHtml } from "../ui/html";
+import { iconClass } from "../ui/icons";
 import { currentLocale, isLocale, text, type Locale } from "../ui/i18n";
 import { clampPanelLayout, PANEL_COLLAPSED, readPanelLayout, SIDE_MAX, SIDE_MIN, TIMELINE_MIN, timelineLimit, writePanelLayout, type PanelLayout } from "../ui/panel-layout";
 import { panelSnapTarget, prefersReducedMotion, releaseVelocity, rubberband, settleNumber, trackPanelSize } from "../ui/motion";
@@ -1165,8 +1166,8 @@ export class Controller {
     this.root.style.setProperty("--pixeluz-timeline", `${Math.min(layout.timelineHeight, timelineLimit(window.innerHeight))}px`);
     this.root.querySelector(".side-panel")?.classList.toggle("is-collapsed", !layout.sideOpen);
     this.root.querySelector(".timeline-desktop")?.classList.toggle("is-collapsed", !layout.timelineOpen);
-    this.syncPanelToggle("side", layout.sideOpen, "fa-chevron-right", "fa-chevron-left");
-    this.syncPanelToggle("timeline", layout.timelineOpen, "fa-chevron-down", "fa-chevron-up");
+    this.syncPanelToggle("side", layout.sideOpen, "caret-right", "caret-left");
+    this.syncPanelToggle("timeline", layout.timelineOpen, "caret-down", "caret-up");
     this.drawPreviews();
   }
 
@@ -1176,8 +1177,8 @@ export class Controller {
     const label = open ? text.minimizePanel : text.expandPanel;
     button.title = label;
     button.setAttribute("aria-label", label);
-    const icon = button.querySelector("i");
-    if (icon) icon.className = `fa-solid ${open ? openIcon : closedIcon}`;
+    const node = button.querySelector("i");
+    if (node) node.className = iconClass(open ? openIcon : closedIcon);
   }
 
   private togglePanel(panel: string | undefined): void {
@@ -1656,8 +1657,8 @@ export class Controller {
       return;
     }
     this.animPreview.playing = !this.animPreview.playing;
-    const icon = this.root.querySelector<HTMLElement>("[data-action='anim-preview-toggle'] i");
-    if (icon) icon.className = this.animPreview.playing ? "fa-solid fa-pause" : "fa-solid fa-play";
+    const node = this.root.querySelector<HTMLElement>("[data-action='anim-preview-toggle'] i");
+    if (node) node.className = iconClass(this.animPreview.playing ? "pause" : "play");
     if (this.animPreview.playing) this.scheduleAnimPreview();
     else if (this.animPreview.timer) window.clearTimeout(this.animPreview.timer);
   }
@@ -1701,8 +1702,8 @@ export class Controller {
     if (!this.animPreview) return;
     if (this.animPreview.timer) window.clearTimeout(this.animPreview.timer);
     this.animPreview = null;
-    const icon = this.root.querySelector<HTMLElement>("[data-action='anim-preview-toggle'] i");
-    if (icon) icon.className = "fa-solid fa-play";
+    const node = this.root.querySelector<HTMLElement>("[data-action='anim-preview-toggle'] i");
+    if (node) node.className = iconClass("play");
   }
 
   private updateHistoryButtons(): void {

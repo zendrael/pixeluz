@@ -6,13 +6,14 @@ import { bindingOrder, formatChord, type BindingId, type Bindings } from "../inp
 import { compositeFrame } from "../render/composite";
 import { TOOL_META } from "../tools/catalog";
 import { escapeHtml } from "./html";
+import { icon, iconClass } from "./icons";
 import { text } from "./i18n";
 
 export function renderToolbars(hosts: HTMLElement[], bindings: Bindings): void {
   const html = TOOL_META.map((tool) => {
     const label = text[tool.labelKey];
     const hint = formatChord(bindings[tool.id]);
-    return `<button type="button" class="btn btn-outline-secondary tool-btn" data-tool="${tool.id}" title="${escapeHtml(label)} (${hint})" aria-label="${escapeHtml(label)}" aria-pressed="false"><i class="${tool.icon}" aria-hidden="true"></i></button>`;
+    return `<button type="button" class="btn btn-outline-secondary tool-btn" data-tool="${tool.id}" title="${escapeHtml(label)} (${hint})" aria-label="${escapeHtml(label)}" aria-pressed="false"><i class="${iconClass(tool.icon)}" aria-hidden="true"></i></button>`;
   }).join("");
   for (const host of hosts) host.innerHTML = html;
 }
@@ -40,18 +41,18 @@ export function renderLayers(
     .reverse()
     .filter((layer) => !hidden.has(layer.id))
     .map((layer) => {
-      const icon = layer.visible ? "fa-eye" : "fa-eye-slash";
+      const visibility = layer.visible ? "eye" : "eye-slash";
       const label = layer.visible ? text.hideLayer : text.showLayer;
-      const lockIcon = layer.locked ? "fa-lock" : "fa-lock-open";
+      const lockName = layer.locked ? "lock-simple" : "lock-simple-open";
       const lockLabel = layer.locked ? text.unlockLayer : text.lockLayer;
       const active = layer.id === activeLayerId ? " active" : "";
       const kind = layer.kind === "group" ? text.kindGroup : layer.kind === "reference" ? text.kindReference : layer.kind === "tilemap" ? text.kindTiles : "";
       const pad = layerDepth(doc, layer) * 0.75;
       const collapse =
         layer.kind === "group"
-          ? `<button type="button" class="btn btn-sm btn-outline-secondary" data-action="toggle-group" data-layer-id="${layer.id}" aria-label="${collapsedGroups.has(layer.id) ? text.expandGroup : text.collapseGroup}"><i class="fa-solid ${collapsedGroups.has(layer.id) ? "fa-chevron-right" : "fa-chevron-down"}" aria-hidden="true"></i></button>`
+          ? `<button type="button" class="btn btn-sm btn-outline-secondary" data-action="toggle-group" data-layer-id="${layer.id}" aria-label="${collapsedGroups.has(layer.id) ? text.expandGroup : text.collapseGroup}">${icon(collapsedGroups.has(layer.id) ? "caret-right" : "caret-down")}</button>`
           : "";
-      return `<div class="list-group-item d-flex align-items-center gap-2${active}" style="padding-left:${0.75 + pad}rem" data-action="select-layer" data-layer-id="${layer.id}">${collapse}<button type="button" class="btn btn-sm btn-outline-secondary" data-action="toggle-layer" data-layer-id="${layer.id}" aria-label="${label}"><i class="fa-solid ${icon}" aria-hidden="true"></i></button><button type="button" class="btn btn-sm btn-outline-secondary" data-action="toggle-layer-lock" data-layer-id="${layer.id}" aria-label="${lockLabel}"><i class="fa-solid ${lockIcon}" aria-hidden="true"></i></button><input class="form-control form-control-sm layer-name" data-layer-name="${layer.id}" value="${escapeHtml(layer.name)}" aria-label="${text.renameLayer}" />${kind ? `<span class="small text-secondary">${kind}</span>` : ""}</div>`;
+      return `<div class="list-group-item d-flex align-items-center gap-2${active}" style="padding-left:${0.75 + pad}rem" data-action="select-layer" data-layer-id="${layer.id}">${collapse}<button type="button" class="btn btn-sm btn-outline-secondary" data-action="toggle-layer" data-layer-id="${layer.id}" aria-label="${label}">${icon(visibility)}</button><button type="button" class="btn btn-sm btn-outline-secondary" data-action="toggle-layer-lock" data-layer-id="${layer.id}" aria-label="${lockLabel}">${icon(lockName)}</button><input class="form-control form-control-sm layer-name" data-layer-name="${layer.id}" value="${escapeHtml(layer.name)}" aria-label="${text.renameLayer}" />${kind ? `<span class="small text-secondary">${kind}</span>` : ""}</div>`;
     })
     .join("")}</div>`;
   for (const host of hosts) host.innerHTML = html;
@@ -103,7 +104,7 @@ export function renderTileSwatches(hosts: HTMLElement[], tileset: Tileset | null
 export function renderSlices(hosts: HTMLElement[], slices: Slice[]): void {
   const html = slices
     .map(
-      (slice) => `<div class="d-flex align-items-center gap-2 mb-1"><span class="small text-truncate">${escapeHtml(slice.name)}</span><button type="button" class="btn btn-sm btn-outline-secondary ms-auto" data-action="delete-slice" data-slice-id="${slice.id}" aria-label="${text.deleteSlice}"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>`,
+      (slice) => `<div class="d-flex align-items-center gap-2 mb-1"><span class="small text-truncate">${escapeHtml(slice.name)}</span><button type="button" class="btn btn-sm btn-outline-secondary ms-auto" data-action="delete-slice" data-slice-id="${slice.id}" aria-label="${text.deleteSlice}">${icon("x")}</button></div>`,
     )
     .join("");
   for (const host of hosts) host.innerHTML = html || `<p class="small text-secondary mb-0">${text.noSlices}</p>`;
@@ -134,7 +135,7 @@ export function renderTags(hosts: HTMLElement[], doc: SpriteDocument): void {
           <option value="ping-pong" ${tag.direction === "ping-pong" ? "selected" : ""}>${text.loopPing}</option>
         </select>
         <button type="button" class="btn btn-sm btn-outline-secondary" data-action="use-tag" data-tag-id="${tag.id}">${text.useTag}</button>
-        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="delete-tag" data-tag-id="${tag.id}" aria-label="${text.deleteTag}"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="delete-tag" data-tag-id="${tag.id}" aria-label="${text.deleteTag}">${icon("x")}</button>
       </div>`,
     )
     .join("");
@@ -146,10 +147,10 @@ export function renderTabs(host: HTMLElement, tabs: Array<{ name: string; dirty:
     .map((tab, index) => {
       const active = tab.active ? " btn-primary" : " btn-outline-secondary";
       const mark = tab.dirty ? " •" : "";
-      return `<div class="btn-group"><button type="button" class="btn btn-sm text-truncate${active}" style="max-width:9rem" data-tab="${index}">${escapeHtml(tab.name)}${mark}</button><button type="button" class="btn btn-sm btn-outline-secondary" data-action="close-tab" data-tab="${index}" aria-label="${text.closeTab}"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>`;
+      return `<div class="btn-group"><button type="button" class="btn btn-sm text-truncate${active}" style="max-width:9rem" data-tab="${index}">${escapeHtml(tab.name)}${mark}</button><button type="button" class="btn btn-sm btn-outline-secondary" data-action="close-tab" data-tab="${index}" aria-label="${text.closeTab}">${icon("x")}</button></div>`;
     })
     .join("");
-  host.innerHTML = `${buttons}<button type="button" class="btn btn-sm doc-tab-add" data-action="add-tab" aria-label="${text.addTab}"><i class="fa-solid fa-plus" aria-hidden="true"></i></button>`;
+  host.innerHTML = `${buttons}<button type="button" class="btn btn-sm doc-tab-add" data-action="add-tab" aria-label="${text.addTab}">${icon("plus")}</button>`;
 }
 
 export function renderFrames(
@@ -246,8 +247,8 @@ export function drawThumb(canvas: HTMLCanvasElement, doc: SpriteDocument, frameI
 }
 
 export function setPlaying(root: ParentNode, playing: boolean): void {
-  for (const icon of root.querySelectorAll<HTMLElement>("[data-action='play'] i")) {
-    icon.className = playing ? "fa-solid fa-pause" : "fa-solid fa-play";
+  for (const node of root.querySelectorAll<HTMLElement>("[data-action='play'] i")) {
+    node.className = iconClass(playing ? "pause" : "play");
   }
   for (const button of root.querySelectorAll<HTMLButtonElement>("[data-action='play']")) {
     button.setAttribute("aria-label", playing ? text.pause : text.play);
