@@ -48,11 +48,12 @@ export function renderLayers(
       const active = layer.id === activeLayerId ? " active" : "";
       const kind = layer.kind === "group" ? text.kindGroup : layer.kind === "reference" ? text.kindReference : layer.kind === "tilemap" ? text.kindTiles : "";
       const pad = layerDepth(doc, layer) * 0.75;
+      const groupLabel = collapsedGroups.has(layer.id) ? text.expandGroup : text.collapseGroup;
       const collapse =
         layer.kind === "group"
-          ? `<button type="button" class="btn btn-sm btn-outline-secondary" data-action="toggle-group" data-layer-id="${layer.id}" aria-label="${collapsedGroups.has(layer.id) ? text.expandGroup : text.collapseGroup}">${icon(collapsedGroups.has(layer.id) ? "caret-right" : "caret-down")}</button>`
+          ? `<button type="button" class="btn btn-sm btn-outline-secondary" data-action="toggle-group" data-layer-id="${layer.id}" title="${groupLabel}" aria-label="${groupLabel}">${icon(collapsedGroups.has(layer.id) ? "caret-right" : "caret-down")}</button>`
           : "";
-      return `<div class="list-group-item d-flex align-items-center gap-2${active}" style="padding-left:${0.75 + pad}rem" data-action="select-layer" data-layer-id="${layer.id}">${collapse}<button type="button" class="btn btn-sm btn-outline-secondary" data-action="toggle-layer" data-layer-id="${layer.id}" aria-label="${label}">${icon(visibility)}</button><button type="button" class="btn btn-sm btn-outline-secondary" data-action="toggle-layer-lock" data-layer-id="${layer.id}" aria-label="${lockLabel}">${icon(lockName)}</button><input class="form-control form-control-sm layer-name" data-layer-name="${layer.id}" value="${escapeHtml(layer.name)}" aria-label="${text.renameLayer}" />${kind ? `<span class="small text-secondary">${kind}</span>` : ""}</div>`;
+      return `<div class="list-group-item d-flex align-items-center gap-2${active}" style="padding-left:${0.75 + pad}rem" data-action="select-layer" data-layer-id="${layer.id}">${collapse}<button type="button" class="btn btn-sm btn-outline-secondary" data-action="toggle-layer" data-layer-id="${layer.id}" title="${label}" aria-label="${label}">${icon(visibility)}</button><button type="button" class="btn btn-sm btn-outline-secondary" data-action="toggle-layer-lock" data-layer-id="${layer.id}" title="${lockLabel}" aria-label="${lockLabel}">${icon(lockName)}</button><input class="form-control form-control-sm layer-name" data-layer-name="${layer.id}" value="${escapeHtml(layer.name)}" aria-label="${text.renameLayer}" />${kind ? `<span class="small text-secondary">${kind}</span>` : ""}</div>`;
     })
     .join("")}</div>`;
   for (const host of hosts) host.innerHTML = html;
@@ -104,7 +105,7 @@ export function renderTileSwatches(hosts: HTMLElement[], tileset: Tileset | null
 export function renderSlices(hosts: HTMLElement[], slices: Slice[]): void {
   const html = slices
     .map(
-      (slice) => `<div class="d-flex align-items-center gap-2 mb-1"><span class="small text-truncate">${escapeHtml(slice.name)}</span><button type="button" class="btn btn-sm btn-outline-secondary ms-auto" data-action="delete-slice" data-slice-id="${slice.id}" aria-label="${text.deleteSlice}">${icon("x")}</button></div>`,
+      (slice) => `<div class="d-flex align-items-center gap-2 mb-1"><span class="small text-truncate">${escapeHtml(slice.name)}</span><button type="button" class="btn btn-sm btn-outline-secondary ms-auto" data-action="delete-slice" data-slice-id="${slice.id}" title="${text.deleteSlice}" aria-label="${text.deleteSlice}">${icon("x")}</button></div>`,
     )
     .join("");
   for (const host of hosts) host.innerHTML = html || `<p class="small text-secondary mb-0">${text.noSlices}</p>`;
@@ -135,7 +136,7 @@ export function renderTags(hosts: HTMLElement[], doc: SpriteDocument): void {
           <option value="ping-pong" ${tag.direction === "ping-pong" ? "selected" : ""}>${text.loopPing}</option>
         </select>
         <button type="button" class="btn btn-sm btn-outline-secondary" data-action="use-tag" data-tag-id="${tag.id}">${text.useTag}</button>
-        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="delete-tag" data-tag-id="${tag.id}" aria-label="${text.deleteTag}">${icon("x")}</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="delete-tag" data-tag-id="${tag.id}" title="${text.deleteTag}" aria-label="${text.deleteTag}">${icon("x")}</button>
       </div>`,
     )
     .join("");
@@ -147,10 +148,10 @@ export function renderTabs(host: HTMLElement, tabs: Array<{ name: string; dirty:
     .map((tab, index) => {
       const active = tab.active ? " btn-primary" : " btn-outline-secondary";
       const mark = tab.dirty ? " •" : "";
-      return `<div class="btn-group"><button type="button" class="btn btn-sm text-truncate${active}" style="max-width:9rem" data-tab="${index}">${escapeHtml(tab.name)}${mark}</button><button type="button" class="btn btn-sm btn-outline-secondary" data-action="close-tab" data-tab="${index}" aria-label="${text.closeTab}">${icon("x")}</button></div>`;
+      return `<div class="btn-group"><button type="button" class="btn btn-sm text-truncate${active}" style="max-width:9rem" data-tab="${index}">${escapeHtml(tab.name)}${mark}</button><button type="button" class="btn btn-sm btn-outline-secondary" data-action="close-tab" data-tab="${index}" title="${text.closeTab}" aria-label="${text.closeTab}">${icon("x")}</button></div>`;
     })
     .join("");
-  host.innerHTML = `${buttons}<button type="button" class="btn btn-sm doc-tab-add" data-action="add-tab" aria-label="${text.addTab}">${icon("plus")}</button>`;
+  host.innerHTML = `${buttons}<button type="button" class="btn btn-sm doc-tab-add" data-action="add-tab" title="${text.addTab}" aria-label="${text.addTab}">${icon("plus")}</button>`;
 }
 
 export function renderFrames(
@@ -247,11 +248,13 @@ export function drawThumb(canvas: HTMLCanvasElement, doc: SpriteDocument, frameI
 }
 
 export function setPlaying(root: ParentNode, playing: boolean): void {
+  const label = playing ? text.pause : text.play;
   for (const node of root.querySelectorAll<HTMLElement>("[data-action='play'] i")) {
     node.className = iconClass(playing ? "pause" : "play");
   }
   for (const button of root.querySelectorAll<HTMLButtonElement>("[data-action='play']")) {
-    button.setAttribute("aria-label", playing ? text.pause : text.play);
+    button.title = label;
+    button.setAttribute("aria-label", label);
   }
 }
 

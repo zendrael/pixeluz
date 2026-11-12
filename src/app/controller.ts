@@ -1647,6 +1647,7 @@ export class Controller {
     const zoom = Number(this.required<HTMLInputElement>("#anim-preview-zoom").value) || 8;
     this.animPreview = { frames, index: 0, playing: true, timer: 0, speed, zoom };
     Modal.getOrCreateInstance(this.required("#modal-anim-preview")).show();
+    this.syncAnimPreviewToggle();
     this.drawAnimPreviewFrame();
     this.scheduleAnimPreview();
   }
@@ -1657,10 +1658,20 @@ export class Controller {
       return;
     }
     this.animPreview.playing = !this.animPreview.playing;
-    const node = this.root.querySelector<HTMLElement>("[data-action='anim-preview-toggle'] i");
-    if (node) node.className = iconClass(this.animPreview.playing ? "pause" : "play");
+    this.syncAnimPreviewToggle();
     if (this.animPreview.playing) this.scheduleAnimPreview();
     else if (this.animPreview.timer) window.clearTimeout(this.animPreview.timer);
+  }
+
+  private syncAnimPreviewToggle(): void {
+    const button = this.root.querySelector<HTMLButtonElement>("[data-action='anim-preview-toggle']");
+    if (!button) return;
+    const playing = Boolean(this.animPreview?.playing);
+    const label = playing ? text.pause : text.play;
+    button.title = label;
+    button.setAttribute("aria-label", label);
+    const node = button.querySelector("i");
+    if (node) node.className = iconClass(playing ? "pause" : "play");
   }
 
   private syncAnimPreviewControls(): void {
@@ -1702,8 +1713,7 @@ export class Controller {
     if (!this.animPreview) return;
     if (this.animPreview.timer) window.clearTimeout(this.animPreview.timer);
     this.animPreview = null;
-    const node = this.root.querySelector<HTMLElement>("[data-action='anim-preview-toggle'] i");
-    if (node) node.className = iconClass("play");
+    this.syncAnimPreviewToggle();
   }
 
   private updateHistoryButtons(): void {

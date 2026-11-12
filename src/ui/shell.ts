@@ -4,7 +4,7 @@ import { icon } from "./icons";
 import { currentLocale, text, blendLabels } from "./i18n";
 
 function closeButton(dismiss: "modal" | "offcanvas"): string {
-  return `<button type="button" class="btn btn-sm btn-outline-secondary icon-btn ms-auto" data-bs-dismiss="${dismiss}" aria-label="${text.close}">${icon("x")}</button>`;
+  return `<button type="button" class="btn btn-sm btn-outline-secondary icon-btn ms-auto" data-bs-dismiss="${dismiss}" title="${text.close}" aria-label="${text.close}">${icon("x")}</button>`;
 }
 
 function iconButton(action: string, name: string, label: string, id = ""): string {
@@ -505,7 +505,7 @@ export function mountShell(root: HTMLElement): void {
               <canvas id="anim-preview-canvas" class="anim-preview-canvas" width="32" height="32"></canvas>
             </div>
             <div class="d-flex flex-wrap align-items-center gap-2">
-              <button type="button" class="btn btn-sm btn-outline-secondary" data-action="anim-preview-toggle" aria-label="${text.play}">${icon("play")}</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-action="anim-preview-toggle" title="${text.play}" aria-label="${text.play}">${icon("play")}</button>
               <label class="small text-secondary d-flex align-items-center gap-1 mb-0">${text.animSpeed}
                 <input id="anim-preview-speed" type="number" min="0.25" max="4" step="0.25" value="1" class="form-control form-control-sm" style="width:4.5rem" />
                 ×
