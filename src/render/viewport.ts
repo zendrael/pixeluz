@@ -3,8 +3,11 @@ import { palmBlocksTouch, pointerSamples } from "./pen";
 import { consumeWheelPinch, wheelDeltaPixels, zoomFromPinch } from "./zoom-gesture";
 import { sliceKeyAt } from "../domain/slices";
 import { placePixel } from "../domain/symmetry";
+import { cloneImage } from "../domain/image-buffer";
 import { maskBounds } from "../domain/selection";
+import { hitTransformHandle, transformHandlePoints, type TransformHandle } from "../domain/transform-handles";
 import type { ImageBuffer, Rgba } from "../domain/types";
+import type { FloatingSelection } from "../app/selection-clipboard";
 import type { EditorSession } from "../app/session";
 import type { Tool, ToolContext } from "../tools/tool";
 
@@ -17,7 +20,17 @@ type Gesture =
   | { kind: "none" }
   | { kind: "tool"; pointerId: number }
   | { kind: "pan"; pointerId: number; lastX: number; lastY: number }
-  | { kind: "pinch"; dist: number; zoom: number; spriteX: number; spriteY: number };
+  | { kind: "pinch"; dist: number; zoom: number; spriteX: number; spriteY: number }
+  | {
+      kind: "transform";
+      pointerId: number;
+      handle: TransformHandle;
+      baseline: FloatingSelection;
+      originX: number;
+      originY: number;
+      startDist: number;
+      startAngle: number;
+    };
 
 export class Viewport {
   private readonly canvas: HTMLCanvasElement;
@@ -124,6 +137,10 @@ export class Viewport {
   syncCursor(): void {
     if (this.gesture.kind === "pan" || this.gesture.kind === "pinch") {
       this.canvas.style.cursor = "grabbing";
+      return;
+    }
+    if (this.gesture.kind === "transform") {
+      this.canvas.style.cursor = this.gesture.handle === "rotate" ? "grabbing" : "nwse-resize";
       return;
     }
     this.canvas.style.cursor = this.spaceHeld ? "grab" : this.tools().cursor;
@@ -288,40 +305,90 @@ export class Viewport {
     if (!mask) return;
     const bounds = maskBounds(mask, this.session.doc.width, this.session.doc.height);
     if (!bounds) return;
-    const x = Math.round(panX + bounds.minX * zoom);
-    const y = Math.round(panY + bounds.minY * zoom);
-    const w = Math.max(1, (bounds.maxX - bounds.minX + 1) * zoom);
-    const h = Math.max(1, (bounds.maxY - bounds.minY + 1) * zoom);
+    const handles = transformHandlePoints(bounds, panX, panY, zoom);
+    const box = handles.filter((handle) => handle.id !== "rotate");
+    const nw = box.find((handle) => handle.id === "nw");
+    const se = box.find((handle) => handle.id === "se");
+    const rotate = handles.find((handle) => handle.id === "rotate");
+    if (!nw || !se || !rotate) return;
     this.ctx.save();
     this.ctx.strokeStyle = "#6ea8fe";
     this.ctx.lineWidth = 1;
     this.ctx.setLineDash([4, 3]);
-    this.ctx.strokeRect(x + 0.5, y + 0.5, w, h);
+    this.ctx.strokeRect(nw.x + 0.5, nw.y + 0.5, se.x - nw.x, se.y - nw.y);
     this.ctx.setLineDash([]);
     const size = 8;
-    const corners = [
-      [x, y],
-      [x + w, y],
-      [x, y + h],
-      [x + w, y + h],
-    ];
     this.ctx.fillStyle = "#ffffff";
     this.ctx.strokeStyle = "#0d6efd";
-    for (const [cx, cy] of corners) {
-      this.ctx.fillRect(cx - size / 2, cy - size / 2, size, size);
-      this.ctx.strokeRect(cx - size / 2 + 0.5, cy - size / 2 + 0.5, size - 1, size - 1);
+    for (const handle of box) {
+      this.ctx.fillRect(handle.x - size / 2, handle.y - size / 2, size, size);
+      this.ctx.strokeRect(handle.x - size / 2 + 0.5, handle.y - size / 2 + 0.5, size - 1, size - 1);
     }
-    const rx = x + w / 2;
-    const ry = y - 18;
     this.ctx.beginPath();
-    this.ctx.moveTo(x + w / 2, y);
-    this.ctx.lineTo(rx, ry);
+    this.ctx.moveTo((nw.x + se.x) / 2, nw.y);
+    this.ctx.lineTo(rotate.x, rotate.y);
     this.ctx.stroke();
     this.ctx.beginPath();
-    this.ctx.arc(rx, ry, 5, 0, Math.PI * 2);
+    this.ctx.arc(rotate.x, rotate.y, 5, 0, Math.PI * 2);
     this.ctx.fill();
     this.ctx.stroke();
     this.ctx.restore();
+  }
+
+  private beginTransform(pointerId: number, canvasX: number, canvasY: number): boolean {
+    const selection = this.session.selection;
+    if (!selection) return false;
+    const handle = hitTransformHandle(
+      selection,
+      this.session.doc.width,
+      this.session.doc.height,
+      canvasX,
+      canvasY,
+      this.session.panX,
+      this.session.panY,
+      this.session.zoom,
+    );
+    if (!handle) return false;
+    if (!this.session.floating && !this.session.liftSelection(false)) return false;
+    const float = this.session.floating;
+    if (!float) return false;
+    const bounds = maskBounds(selection, this.session.doc.width, this.session.doc.height);
+    if (!bounds) return false;
+    const cx = this.session.panX + ((bounds.minX + bounds.maxX + 1) / 2) * this.session.zoom;
+    const cy = this.session.panY + ((bounds.minY + bounds.maxY + 1) / 2) * this.session.zoom;
+    const dx = canvasX - cx;
+    const dy = canvasY - cy;
+    this.session.pausePlayback();
+    this.gesture = {
+      kind: "transform",
+      pointerId,
+      handle,
+      baseline: {
+        image: cloneImage(float.image),
+        mask: float.mask.slice(),
+        x: float.x,
+        y: float.y,
+      },
+      originX: cx,
+      originY: cy,
+      startDist: Math.max(8, Math.hypot(dx, dy)),
+      startAngle: Math.atan2(dy, dx),
+    };
+    return true;
+  }
+
+  private updateTransform(canvasX: number, canvasY: number): void {
+    if (this.gesture.kind !== "transform") return;
+    const dx = canvasX - this.gesture.originX;
+    const dy = canvasY - this.gesture.originY;
+    if (this.gesture.handle === "rotate") {
+      const degrees = ((Math.atan2(dy, dx) - this.gesture.startAngle) * 180) / Math.PI;
+      this.session.reshapeFromBaseline(this.gesture.baseline, { rotateDegrees: degrees });
+      return;
+    }
+    const dist = Math.max(8, Math.hypot(dx, dy));
+    const percent = Math.max(25, Math.min(400, (dist / this.gesture.startDist) * 100));
+    this.session.reshapeFromBaseline(this.gesture.baseline, { scalePercent: percent });
   }
 
   private drawSlices(panX: number, panY: number, zoom: number): void {
@@ -377,6 +444,10 @@ export class Viewport {
       this.syncCursor();
       return;
     }
+    if (this.beginTransform(event.pointerId, point.x, point.y)) {
+      this.syncCursor();
+      return;
+    }
     this.gesture = { kind: "tool", pointerId: event.pointerId };
     this.tools().onDown(this.toolContext(event, point));
   }
@@ -390,6 +461,10 @@ export class Viewport {
     this.publishHover(point);
     if (this.gesture.kind === "pinch") {
       this.updatePinch();
+      return;
+    }
+    if (this.gesture.kind === "transform" && this.gesture.pointerId === event.pointerId) {
+      this.updateTransform(point.x, point.y);
       return;
     }
     if (this.gesture.kind === "pan" && this.gesture.pointerId === event.pointerId) {
@@ -416,6 +491,8 @@ export class Viewport {
         this.session.endStroke();
         this.gesture = { kind: "none" };
       }
+    } else if (this.gesture.kind === "transform" && this.gesture.pointerId === event.pointerId) {
+      this.gesture = { kind: "none" };
     } else if (this.gesture.kind === "pan" && this.gesture.pointerId === event.pointerId) {
       this.gesture = { kind: "none" };
     } else if (this.gesture.kind === "pinch" && this.pointers.size < 2) {

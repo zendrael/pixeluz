@@ -332,4 +332,21 @@ describe("fase 5", () => {
     expect(session.freeScaleSelection(200)).toBe(true);
     expect(session.floating?.image.width).toBeGreaterThanOrEqual(1);
   });
+
+  it("gira a seleção flutuante a partir de um baseline", () => {
+    const session = new EditorSession(createSprite(8, 8));
+    const cel = findCel(session.doc, session.activeLayerId, session.activeFrameId);
+    if (!cel) throw new Error("cel ausente");
+    setPixel(cel.image, 3, 1, red);
+    setPixel(cel.image, 4, 1, red);
+    const mask = new Uint8Array(64);
+    mask[1 * 8 + 3] = 1;
+    mask[1 * 8 + 4] = 1;
+    session.setSelection(mask);
+    expect(session.liftSelection(false)).toBe(true);
+    const baseline = session.floating!;
+    expect(session.reshapeFromBaseline(baseline, { rotateDegrees: 90 })).toBe(true);
+    expect(session.floating).not.toBeNull();
+    expect(session.floating!.mask.some((bit) => bit === 1)).toBe(true);
+  });
 });

@@ -359,6 +359,17 @@ export class EditorSession implements EditorApi {
     return this.replaceSelectionContent((image, mask) => rotateSelectionNearest(image, mask, turns));
   }
 
+  /** Scale/rotate the current floating (or lift first) from an absolute baseline snapshot. */
+  reshapeFromBaseline(
+    baseline: FloatingSelection,
+    options: { scalePercent?: number; rotateDegrees?: number },
+  ): boolean {
+    this.resetFloating(baseline);
+    if (options.rotateDegrees !== undefined) return this.freeRotateSelection(options.rotateDegrees);
+    if (options.scalePercent !== undefined) return this.freeScaleSelection(options.scalePercent);
+    return false;
+  }
+
   resetFloating(float: FloatingSelection): void {
     this.floating = {
       image: cloneImage(float.image),
