@@ -2,8 +2,10 @@ import { Modal, Offcanvas } from "bootstrap";
 import type { BayerSize } from "../domain/draw-options";
 import type { BlendMode, ColorMode, LoopDirection, Rgba } from "../domain/types";
 import { cropImage, sliceKeyAt } from "../domain/slices";
+import { getPixel } from "../domain/image-buffer";
+import { maskBounds } from "../domain/selection";
 import { EditorSession, type ChangeKind } from "./session";
-import { TRANSPARENT, hexToRgba, hsvToRgb, rgbaToHex, rgbToHsv } from "../domain/color";
+import { TRANSPARENT, hexToRgba, hsvToRgb, rgbaToCss, rgbaToHex, rgbToHsv } from "../domain/color";
 import { DEFAULT_BACKGROUND, DEFAULT_FOREGROUND, createSprite } from "../domain/factory";
 import { bytesToBlob } from "../io/bytes";
 import { downloadBlob, downloadDataUrl, filePickerAvailable, OPEN_FILE_TYPES, PALETTE_FILE_TYPES, pickAndSave, pickFile, pngDataUrl, PROJECT_FILE_TYPES, safeFilename, type FilePickerType } from "../io/files";
@@ -84,6 +86,14 @@ export class Controller {
   private hover: { x: number; y: number } | null = null;
   private layoutMotion: (() => void) | null = null;
   private readonly sheetMotions = new Map<HTMLElement, () => void>();
+  private animPreview: {
+    frames: Array<{ image: import("../domain/types").ImageBuffer; durationMs: number }>;
+    index: number;
+    playing: boolean;
+    timer: number;
+    speed: number;
+    zoom: number;
+  } | null = null;
 
   private get session(): EditorSession {
     return this.sessions[this.activeIndex] ?? this.sessions[0]!;
@@ -103,7 +113,7 @@ export class Controller {
     const host = this.required<HTMLElement>("#viewport-host");
     this.viewport = new Viewport(host, () => this.session, () => this.tool, (point) => {
       this.hover = point;
-      this.required("#status-pos").textContent = point ? `${point.x}, ${point.y}` : "";
+      this.updatePixelStatus(point);
     });
     renderToolbars(this.hosts(".tool-host"), this.bindings);
     bindDialog(this.root);
@@ -127,6 +137,7 @@ export class Controller {
   dispose(): void {
     this.abort.abort();
     this.stopLayoutMotion();
+    this.stopAnimPreview();
     for (const stop of this.sheetMotions.values()) stop();
     this.sheetMotions.clear();
     for (const stop of this.stops) stop();
@@ -191,6 +202,18 @@ export class Controller {
     for (const input of this.root.querySelectorAll<HTMLInputElement>("[data-color-channel]")) {
       input.addEventListener("change", () => this.onColorChannel(input), { signal });
     }
+    this.root.addEventListener("input", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLSelectElement)) return;
+      if (target.dataset.filter) {
+        this.previewFilter(target);
+        return;
+      }
+      if (target.id === "anim-preview-speed" || target.id === "anim-preview-zoom") {
+        this.syncAnimPreviewControls();
+      }
+    }, { signal });
+    this.required("#modal-anim-preview").addEventListener("hidden.bs.modal", () => this.stopAnimPreview(), { signal });
     this.required<HTMLFormElement>("#form-new").addEventListener("submit", (event) => {
       event.preventDefault();
       void this.createSprite();
@@ -390,6 +413,16 @@ export class Controller {
         break;
       case "apply-filter":
         this.applyFilter(target);
+        this.session.setPreview(null);
+        break;
+      case "clear-filter-preview":
+        this.session.setPreview(null);
+        break;
+      case "anim-preview":
+        this.openAnimPreview();
+        break;
+      case "anim-preview-toggle":
+        this.toggleAnimPreview();
         break;
       case "undo":
         this.session.undo();
@@ -466,6 +499,9 @@ export class Controller {
           this.session.toggleLayerLock(target.dataset.layerId);
         }
         break;
+      case "toggle-group":
+        if (target.dataset.layerId) this.session.toggleGroupCollapsed(target.dataset.layerId);
+        break;
       case "select-layer":
         if (target.dataset.layerId) this.session.setActiveLayer(target.dataset.layerId);
         break;
@@ -502,6 +538,28 @@ export class Controller {
       case "scale-down":
         this.session.transformSelection("scale-down");
         break;
+      case "expand-selection":
+        this.session.morphActiveSelection("expand");
+        break;
+      case "contract-selection":
+        this.session.morphActiveSelection("contract");
+        break;
+      case "invert-selection":
+        this.session.morphActiveSelection("invert");
+        break;
+      case "border-selection":
+        this.session.morphActiveSelection("border");
+        break;
+      case "apply-free-rotate": {
+        const degrees = Number(this.root.querySelector<HTMLInputElement>("[data-option='free-rotate']")?.value ?? 15);
+        this.session.freeRotateSelection(degrees);
+        break;
+      }
+      case "apply-free-scale": {
+        const percent = Number(this.root.querySelector<HTMLInputElement>("[data-option='free-scale']")?.value ?? 150);
+        this.session.freeScaleSelection(percent);
+        break;
+      }
       case "copy-selection":
         this.session.copySelection();
         break;
@@ -1354,7 +1412,7 @@ export class Controller {
     const tileset = this.session.doc.tilesets.find((item) => item.id === activeLayer?.tilesetId) ?? this.session.doc.tilesets[0] ?? null;
     renderTileSwatches(this.hosts(".tile-host"), activeLayer?.kind === "tilemap" ? tileset : null, this.session.selectedTile);
     if (kind === "chrome") return;
-    renderLayers(this.hosts(".layers-host"), this.session.doc, this.session.activeLayerId);
+    renderLayers(this.hosts(".layers-host"), this.session.doc, this.session.activeLayerId, this.session.collapsedGroups);
     renderSlices(this.hosts(".slices-host"), this.session.doc.slices);
     renderFrames(this.hosts(".timeline-frames"), this.session.doc, this.session.activeFrameIndex, this.session.activeLayerId);
     renderTags(this.hosts(".tags-host"), this.session.doc);
@@ -1428,6 +1486,14 @@ export class Controller {
       const before = field === "onion-before" ? Number(target.value) : this.session.onionBefore;
       const after = field === "onion-after" ? Number(target.value) : this.session.onionAfter;
       this.session.setOnion(before, after);
+    } else if (field === "onion-opacity-before") {
+      this.session.setOnionStyle({ opacityBefore: Number(target.value) / 100 });
+    } else if (field === "onion-opacity-after") {
+      this.session.setOnionStyle({ opacityAfter: Number(target.value) / 100 });
+    } else if (field === "onion-tint-before") {
+      this.session.setOnionStyle({ tintBefore: hexToRgba(target.value) });
+    } else if (field === "onion-tint-after") {
+      this.session.setOnionStyle({ tintAfter: hexToRgba(target.value) });
     }
     if (target.dataset.tagName) this.session.updateTag(target.dataset.tagName, { name: target.value });
     if (target.dataset.tagFrom) this.session.updateTag(target.dataset.tagFrom, { from: Number(target.value) - 1 });
@@ -1445,6 +1511,10 @@ export class Controller {
     this.syncField("[data-field='cel-opacity']", cel ? String(cel.opacity) : "");
     this.syncField("[data-field='onion-before']", String(this.session.onionBefore));
     this.syncField("[data-field='onion-after']", String(this.session.onionAfter));
+    this.syncField("[data-field='onion-opacity-before']", String(Math.round(this.session.onionOpacityBefore * 100)));
+    this.syncField("[data-field='onion-opacity-after']", String(Math.round(this.session.onionOpacityAfter * 100)));
+    this.syncField("[data-field='onion-tint-before']", rgbaToHex(this.session.onionTintBefore));
+    this.syncField("[data-field='onion-tint-after']", rgbaToHex(this.session.onionTintAfter));
     this.syncField("[data-field='color-mode']", this.session.doc.colorMode);
     this.syncField("[data-field='tile-draw']", this.session.tileDrawMode);
     this.syncField("[data-field='tile-pixel']", this.session.tilePixelMode);
@@ -1519,7 +1589,120 @@ export class Controller {
     notice.hidden = !show;
     notice.textContent = show ? text.browserStorage : "";
     this.required("#status-zoom").textContent = `${this.session.zoom}×`;
-    this.required("#status-pos").textContent = this.hover ? `${this.hover.x}, ${this.hover.y}` : "";
+    this.updatePixelStatus(this.hover);
+    const selection = this.required("#status-selection");
+    const bounds = this.session.selection
+      ? maskBounds(this.session.selection, doc.width, doc.height)
+      : null;
+    selection.textContent = bounds
+      ? `${bounds.maxX - bounds.minX + 1}×${bounds.maxY - bounds.minY + 1}`
+      : "";
+  }
+
+  private updatePixelStatus(point: { x: number; y: number } | null): void {
+    this.required("#status-pos").textContent = point ? `${point.x}, ${point.y}` : "";
+    const pixel = this.required("#status-pixel");
+    const swatch = this.required<HTMLElement>("#status-swatch");
+    if (!point) {
+      pixel.textContent = "";
+      swatch.hidden = true;
+      return;
+    }
+    const image = this.session.exportFrame();
+    const color = getPixel(image, point.x, point.y);
+    if (!color) {
+      pixel.textContent = "";
+      swatch.hidden = true;
+      return;
+    }
+    pixel.textContent = color.a === 0 ? "α0" : `${rgbaToHex(color)} · ${color.a}`;
+    swatch.hidden = false;
+    swatch.style.background = color.a === 0 ? "transparent" : rgbaToCss(color);
+    swatch.classList.toggle("is-clear", color.a === 0);
+  }
+
+  private previewFilter(target: HTMLElement): void {
+    const panel = target.closest(".color-panel") ?? this.root;
+    const kind = panel.querySelector<HTMLSelectElement>("[data-filter='kind']")?.value;
+    if (!isFilter(kind)) return;
+    const number = (name: string) => Number(panel.querySelector<HTMLInputElement>(`[data-filter='${name}']`)?.value ?? 0);
+    this.session.previewFilter(kind, {
+      brightness: number("brightness"),
+      contrast: number("contrast"),
+      hue: number("hue"),
+      saturation: number("saturation"),
+      tolerance: number("tolerance"),
+      outline: { ...this.session.foreground },
+      from: { ...this.session.background },
+      to: { ...this.session.foreground },
+    });
+  }
+
+  private openAnimPreview(): void {
+    const frames = this.session.exportAnimation({ tagRange: true });
+    if (frames.length === 0) return;
+    this.stopAnimPreview();
+    const speed = Number(this.required<HTMLInputElement>("#anim-preview-speed").value) || 1;
+    const zoom = Number(this.required<HTMLInputElement>("#anim-preview-zoom").value) || 8;
+    this.animPreview = { frames, index: 0, playing: true, timer: 0, speed, zoom };
+    Modal.getOrCreateInstance(this.required("#modal-anim-preview")).show();
+    this.drawAnimPreviewFrame();
+    this.scheduleAnimPreview();
+  }
+
+  private toggleAnimPreview(): void {
+    if (!this.animPreview) {
+      this.openAnimPreview();
+      return;
+    }
+    this.animPreview.playing = !this.animPreview.playing;
+    const icon = this.root.querySelector<HTMLElement>("[data-action='anim-preview-toggle'] i");
+    if (icon) icon.className = this.animPreview.playing ? "fa-solid fa-pause" : "fa-solid fa-play";
+    if (this.animPreview.playing) this.scheduleAnimPreview();
+    else if (this.animPreview.timer) window.clearTimeout(this.animPreview.timer);
+  }
+
+  private syncAnimPreviewControls(): void {
+    if (!this.animPreview) return;
+    this.animPreview.speed = Math.max(0.25, Math.min(4, Number(this.required<HTMLInputElement>("#anim-preview-speed").value) || 1));
+    this.animPreview.zoom = Math.max(1, Math.min(32, Number(this.required<HTMLInputElement>("#anim-preview-zoom").value) || 8));
+    this.drawAnimPreviewFrame();
+  }
+
+  private scheduleAnimPreview(): void {
+    if (!this.animPreview?.playing) return;
+    const current = this.animPreview.frames[this.animPreview.index];
+    const delay = Math.max(16, Math.round((current?.durationMs ?? 100) / this.animPreview.speed));
+    this.animPreview.timer = window.setTimeout(() => {
+      if (!this.animPreview?.playing) return;
+      this.animPreview.index = (this.animPreview.index + 1) % this.animPreview.frames.length;
+      this.drawAnimPreviewFrame();
+      this.scheduleAnimPreview();
+    }, delay);
+  }
+
+  private drawAnimPreviewFrame(): void {
+    if (!this.animPreview) return;
+    const frame = this.animPreview.frames[this.animPreview.index];
+    const canvas = this.required<HTMLCanvasElement>("#anim-preview-canvas");
+    if (!frame) return;
+    if (canvas.width !== frame.image.width || canvas.height !== frame.image.height) {
+      canvas.width = frame.image.width;
+      canvas.height = frame.image.height;
+    }
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.putImageData(new ImageData(new Uint8ClampedArray(frame.image.data), frame.image.width, frame.image.height), 0, 0);
+    canvas.style.width = `${frame.image.width * this.animPreview.zoom}px`;
+    canvas.style.height = `${frame.image.height * this.animPreview.zoom}px`;
+  }
+
+  private stopAnimPreview(): void {
+    if (!this.animPreview) return;
+    if (this.animPreview.timer) window.clearTimeout(this.animPreview.timer);
+    this.animPreview = null;
+    const icon = this.root.querySelector<HTMLElement>("[data-action='anim-preview-toggle'] i");
+    if (icon) icon.className = "fa-solid fa-play";
   }
 
   private updateHistoryButtons(): void {

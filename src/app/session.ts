@@ -44,7 +44,15 @@ import { cloneImage, createImage, diffSnapshot, getPixel, setPixel } from "../do
 import { MAX_BRUSH_SIZE, MAX_FRAME_MS, MAX_LAYERS, MAX_SPRITE_SIZE, MAX_ZOOM, MIN_FRAME_MS, MIN_SPRITE_SIZE, MIN_ZOOM, gridCell } from "../domain/limits";
 import { framesInPlaybackOrder, playbackBounds, stepPlayback } from "../domain/playback";
 import { rotsprite } from "../domain/rotsprite";
-import { canvasMaskFromFloating, maskBounds, nudgedPasteOrigin, pasteOrigin } from "../domain/selection";
+import {
+  canvasMaskFromFloating,
+  maskBounds,
+  morphSelection,
+  nudgedPasteOrigin,
+  pasteOrigin,
+  type SelectionMorph,
+} from "../domain/selection";
+import { rotateSelectionNearest, scaleSelectionNearest } from "../domain/free-transform";
 import { editSelection, type SelectionOp } from "../domain/selection-edit";
 import { contentLayers, createCel, findCel, findLayer, paintableLayers } from "../domain/sprite";
 import { emptyTileGrid, makeTileset, paintTilePoints, rasterizeTiles, tileCel, type TileDrawMode, type TilePixelMode } from "../domain/tiles";
@@ -88,6 +96,11 @@ export class EditorSession implements EditorApi {
   floating: FloatingSelection | null = null;
   onionBefore = 0;
   onionAfter = 0;
+  onionOpacityBefore = 0.28;
+  onionOpacityAfter = 0.18;
+  onionTintBefore: Rgba = { r: 80, g: 160, b: 255, a: 255 };
+  onionTintAfter: Rgba = { r: 255, g: 120, b: 80, a: 255 };
+  collapsedGroups = new Set<string>();
   tileDrawMode: TileDrawMode = "tiles";
   selectedTile = 1;
   tilePixelMode: TilePixelMode = "auto";
@@ -236,15 +249,27 @@ export class EditorSession implements EditorApi {
     return compositeFrame(this.doc, this.activeFrameId);
   }
 
-  onionLayers(): Array<{ image: ImageBuffer; alpha: number }> {
-    const layers: Array<{ image: ImageBuffer; alpha: number }> = [];
+  onionLayers(): Array<{ image: ImageBuffer; alpha: number; tint: Rgba }> {
+    const layers: Array<{ image: ImageBuffer; alpha: number; tint: Rgba }> = [];
     for (let step = this.onionBefore; step >= 1; step -= 1) {
       const frame = this.doc.frames[this.activeFrameIndex - step];
-      if (frame) layers.push({ image: compositeFrame(this.doc, frame.id, { references: true }), alpha: 0.28 });
+      if (frame) {
+        layers.push({
+          image: compositeFrame(this.doc, frame.id, { references: true }),
+          alpha: this.onionOpacityBefore,
+          tint: this.onionTintBefore,
+        });
+      }
     }
     for (let step = 1; step <= this.onionAfter; step += 1) {
       const frame = this.doc.frames[this.activeFrameIndex + step];
-      if (frame) layers.push({ image: compositeFrame(this.doc, frame.id, { references: true }), alpha: 0.18 });
+      if (frame) {
+        layers.push({
+          image: compositeFrame(this.doc, frame.id, { references: true }),
+          alpha: this.onionOpacityAfter,
+          tint: this.onionTintAfter,
+        });
+      }
     }
     return layers;
   }
@@ -256,6 +281,121 @@ export class EditorSession implements EditorApi {
     this.onionBefore = nextBefore;
     this.onionAfter = nextAfter;
     this.emit("canvas");
+  }
+
+  setOnionStyle(options: {
+    opacityBefore?: number;
+    opacityAfter?: number;
+    tintBefore?: Rgba;
+    tintAfter?: Rgba;
+  }): void {
+    if (options.opacityBefore !== undefined) {
+      this.onionOpacityBefore = Math.max(0.05, Math.min(1, options.opacityBefore));
+    }
+    if (options.opacityAfter !== undefined) {
+      this.onionOpacityAfter = Math.max(0.05, Math.min(1, options.opacityAfter));
+    }
+    if (options.tintBefore) this.onionTintBefore = { ...options.tintBefore, a: 255 };
+    if (options.tintAfter) this.onionTintAfter = { ...options.tintAfter, a: 255 };
+    this.emit("canvas");
+  }
+
+  toggleGroupCollapsed(layerId: string): boolean {
+    const layer = findLayer(this.doc, layerId);
+    if (!layer || layer.kind !== "group") return false;
+    if (this.collapsedGroups.has(layerId)) this.collapsedGroups.delete(layerId);
+    else this.collapsedGroups.add(layerId);
+    this.emit("chrome");
+    return true;
+  }
+
+  isGroupCollapsed(layerId: string): boolean {
+    return this.collapsedGroups.has(layerId);
+  }
+
+  morphActiveSelection(op: SelectionMorph): boolean {
+    const mask = this.selection;
+    if (!mask) return false;
+    const next = morphSelection(mask, this.doc.width, this.doc.height, op);
+    if (!next) {
+      if (op === "contract" || op === "border") {
+        this.stampFloating();
+        this.applySelectionMask(null);
+        this.emit("chrome");
+        return true;
+      }
+      return false;
+    }
+    this.stampFloating();
+    this.applySelectionMask(next);
+    this.emit("chrome");
+    return true;
+  }
+
+  previewFilter(kind: FilterKind, options: FilterOptions): void {
+    const layer = findLayer(this.doc, this.activeLayerId);
+    const cel = this.activeCel();
+    if (!layer || layer.locked || !cel) {
+      this.setPreview(null);
+      return;
+    }
+    const next = filterPixels(cel.image, this.selection, kind, options);
+    const before = cel.image.data.slice();
+    cel.image.data.set(next);
+    const preview = compositeFrame(this.doc, this.activeFrameId, { references: true });
+    cel.image.data.set(before);
+    this.setPreview(preview);
+  }
+
+  freeScaleSelection(percent: number): boolean {
+    const factor = Math.max(0.25, Math.min(4, percent / 100));
+    if (Math.abs(factor - 1) < 0.001) return false;
+    return this.replaceSelectionContent((image, mask) => scaleSelectionNearest(image, mask, factor));
+  }
+
+  freeRotateSelection(degrees: number): boolean {
+    const turns = ((Math.round(degrees) % 360) + 360) % 360;
+    if (turns === 0) return false;
+    return this.replaceSelectionContent((image, mask) => rotateSelectionNearest(image, mask, turns));
+  }
+
+  resetFloating(float: FloatingSelection): void {
+    this.floating = {
+      image: cloneImage(float.image),
+      mask: float.mask.slice(),
+      x: float.x,
+      y: float.y,
+    };
+    this.applySelectionMask(canvasMaskFromFloating(this.floating, this.doc.width, this.doc.height));
+    this.emit("canvas");
+  }
+
+  private replaceSelectionContent(
+    edit: (image: ImageBuffer, mask: Uint8Array) => { image: ImageBuffer; mask: Uint8Array; x: number; y: number } | null,
+  ): boolean {
+    const layer = findLayer(this.doc, this.activeLayerId);
+    if (!layer || (layer.kind !== "image" && layer.kind !== "reference") || !layer.visible || layer.locked) return false;
+    if (!this.floating) {
+      if (!this.selection) return false;
+      if (!this.liftSelection(false)) return false;
+    }
+    const float = this.floating;
+    if (!float) return false;
+    const placed = createImage(this.doc.width, this.doc.height);
+    const mask = canvasMaskFromFloating(float, this.doc.width, this.doc.height);
+    for (let y = 0; y < float.image.height; y += 1) {
+      for (let x = 0; x < float.image.width; x += 1) {
+        if (float.mask[y * float.image.width + x] !== 1) continue;
+        const color = getPixel(float.image, x, y);
+        if (color) setPixel(placed, float.x + x, float.y + y, color);
+      }
+    }
+    const next = edit(placed, mask);
+    if (!next) return false;
+    this.floating = { image: next.image, mask: next.mask, x: next.x, y: next.y };
+    this.applySelectionMask(canvasMaskFromFloating(this.floating, this.doc.width, this.doc.height));
+    this.emit("canvas");
+    return true;
   }
 
   setPreview(image: ImageBuffer | null): void {

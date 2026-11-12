@@ -317,4 +317,19 @@ describe("fase 5", () => {
     expect(getPixel(cel.image, 2, 1)).toEqual(red);
     expect(session.floating).toBeNull();
   });
+
+  it("expande a máscara de seleção e redimensiona o float com escala livre", () => {
+    const session = new EditorSession(createSprite(4, 4));
+    const cel = findCel(session.doc, session.activeLayerId, session.activeFrameId);
+    if (!cel) throw new Error("cel ausente");
+    setPixel(cel.image, 1, 1, red);
+    const mask = new Uint8Array(16);
+    mask[5] = 1;
+    session.setSelection(mask);
+    expect(session.morphActiveSelection("expand")).toBe(true);
+    expect(session.selection?.filter((bit) => bit === 1).length).toBeGreaterThan(1);
+    session.setSelection(mask);
+    expect(session.freeScaleSelection(200)).toBe(true);
+    expect(session.floating?.image.width).toBeGreaterThanOrEqual(1);
+  });
 });

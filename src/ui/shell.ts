@@ -87,7 +87,10 @@ function colorPanel(): string {
       ${propRow(text.saturation, `<input data-filter="saturation" type="number" min="-100" max="100" value="0" class="form-control form-control-sm prop-number" aria-label="${text.saturation}" />`)}
       ${propRow(text.tolerance, `<input data-filter="tolerance" type="number" min="0" max="255" value="0" class="form-control form-control-sm prop-number" aria-label="${text.tolerance}" />`)}
     `)}
-    <button type="button" class="btn btn-sm btn-outline-secondary mt-2" data-action="apply-filter">${text.applyFilter}</button>
+    <div class="d-flex flex-wrap gap-1 mt-2">
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="apply-filter">${text.applyFilter}</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="clear-filter-preview">${text.cancel}</button>
+    </div>
   </div>`;
 }
 
@@ -165,6 +168,14 @@ function optionsBar(): string {
       ${iconOnly("rotate-selection", "fa-arrow-rotate-right", text.rotate)}
       ${iconOnly("scale-up", "fa-up-right-and-down-left-from-center", text.scaleUp)}
       ${iconOnly("scale-down", "fa-down-left-and-up-right-to-center", text.scaleDown)}
+      ${iconOnly("expand-selection", "fa-expand", text.expandSelection)}
+      ${iconOnly("contract-selection", "fa-compress", text.contractSelection)}
+      ${iconOnly("invert-selection", "fa-circle-half-stroke", text.invertSelection)}
+      ${iconOnly("border-selection", "fa-border-all", text.borderSelection)}
+      <label class="d-flex align-items-center gap-1 mb-0 text-nowrap small">${text.freeRotate}<input data-option="free-rotate" type="number" min="-180" max="180" value="15" class="form-control form-control-sm" style="width:4rem" /></label>
+      ${iconOnly("apply-free-rotate", "fa-rotate", text.applyFreeRotate)}
+      <label class="d-flex align-items-center gap-1 mb-0 text-nowrap small">${text.freeScale}<input data-option="free-scale" type="number" min="25" max="400" value="150" class="form-control form-control-sm" style="width:4.5rem" /></label>
+      ${iconOnly("apply-free-scale", "fa-maximize", text.applyFreeScale)}
       ${iconOnly("copy-selection", "fa-copy", text.copySelection)}
       ${iconOnly("cut-selection", "fa-scissors", text.cutSelection)}
       ${iconOnly("paste-selection", "fa-paste", text.pasteSelection)}
@@ -204,6 +215,17 @@ function timelineToolbar(): string {
       <label class="small text-secondary d-flex align-items-center gap-1 mb-0">${text.onionAfter}
         <input data-field="onion-after" type="number" min="0" max="8" value="0" class="form-control form-control-sm" style="width:3.5rem" />
       </label>
+      <label class="small text-secondary d-flex align-items-center gap-1 mb-0">${text.onionOpacity}
+        <input data-field="onion-opacity-before" type="number" min="5" max="100" value="28" class="form-control form-control-sm" style="width:3.5rem" title="${text.onionBefore}" />
+        <input data-field="onion-opacity-after" type="number" min="5" max="100" value="18" class="form-control form-control-sm" style="width:3.5rem" title="${text.onionAfter}" />
+      </label>
+      <label class="small text-secondary d-flex align-items-center gap-1 mb-0">${text.onionTintBefore}
+        <input data-field="onion-tint-before" type="color" value="#50a0ff" class="form-control form-control-sm form-control-color" style="width:2.5rem;padding:0.15rem" />
+      </label>
+      <label class="small text-secondary d-flex align-items-center gap-1 mb-0">${text.onionTintAfter}
+        <input data-field="onion-tint-after" type="color" value="#ff7850" class="form-control form-control-sm form-control-color" style="width:2.5rem;padding:0.15rem" />
+      </label>
+      ${icon("anim-preview", "fa-clapperboard", text.openAnimPreview)}
     </div>
   </div>
   <div class="tags-host px-2"></div>
@@ -276,6 +298,9 @@ export function mountShell(root: HTMLElement): void {
       <span id="status-doc" class="text-nowrap"></span>
       <span id="browser-notice" class="text-secondary text-truncate flex-grow-1 min-w-0" hidden></span>
       <span id="status-pos" class="text-secondary"></span>
+      <span id="status-pixel" class="text-secondary text-nowrap"></span>
+      <span id="status-swatch" class="status-swatch" hidden></span>
+      <span id="status-selection" class="text-secondary text-nowrap"></span>
       <span class="ms-auto" id="status-zoom"></span>
     </div>
     <section class="timeline-desktop timeline-host d-none d-lg-flex flex-column border-top bg-body" aria-label="${text.frames}">
@@ -467,6 +492,32 @@ export function mountShell(root: HTMLElement): void {
             <button type="button" class="btn btn-outline-secondary" data-dialog="cancel">${text.cancel}</button>
             <button type="button" class="btn btn-primary" data-dialog="confirm">${text.dialogConfirm}</button>
             <button type="button" class="btn btn-primary" data-dialog="ok" hidden>${text.dialogOk}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal fade" id="modal-anim-preview" tabindex="-1" aria-labelledby="modal-anim-preview-label" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title h5" id="modal-anim-preview-label">${text.animPreview}</h2>
+            ${closeButton("modal")}
+          </div>
+          <div class="modal-body">
+            <div class="anim-preview-stage bg-dark d-flex align-items-center justify-content-center mb-3">
+              <canvas id="anim-preview-canvas" class="anim-preview-canvas" width="32" height="32"></canvas>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-action="anim-preview-toggle" aria-label="${text.play}">${fa("fa-play")}</button>
+              <label class="small text-secondary d-flex align-items-center gap-1 mb-0">${text.animSpeed}
+                <input id="anim-preview-speed" type="number" min="0.25" max="4" step="0.25" value="1" class="form-control form-control-sm" style="width:4.5rem" />
+                ×
+              </label>
+              <label class="small text-secondary d-flex align-items-center gap-1 mb-0">Zoom
+                <input id="anim-preview-zoom" type="number" min="1" max="32" value="8" class="form-control form-control-sm" style="width:4.5rem" />
+                ×
+              </label>
+            </div>
           </div>
         </div>
       </div>

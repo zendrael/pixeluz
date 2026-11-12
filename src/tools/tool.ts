@@ -35,6 +35,9 @@ export interface EditorApi {
   liftSelection(keepSource: boolean): boolean;
   moveFloating(dx: number, dy: number): boolean;
   stampFloating(): boolean;
+  resetFloating(float: { image: ImageBuffer; mask: Uint8Array; x: number; y: number }): void;
+  freeScaleSelection(percent: number): boolean;
+  freeRotateSelection(degrees: number): boolean;
   invalidateCanvas(): void;
   setView(zoom: number, panX: number, panY: number): void;
   zoomAt(canvasX: number, canvasY: number, direction: 1 | -1): void;

@@ -3,7 +3,8 @@ import { palmBlocksTouch, pointerSamples } from "./pen";
 import { consumeWheelPinch, wheelDeltaPixels, zoomFromPinch } from "./zoom-gesture";
 import { sliceKeyAt } from "../domain/slices";
 import { placePixel } from "../domain/symmetry";
-import type { ImageBuffer } from "../domain/types";
+import { maskBounds } from "../domain/selection";
+import type { ImageBuffer, Rgba } from "../domain/types";
 import type { EditorSession } from "../app/session";
 import type { Tool, ToolContext } from "../tools/tool";
 
@@ -103,6 +104,7 @@ export class Viewport {
     }
     if (this.session.showPixelGrid) this.drawGrid(panX, panY, zoom);
     this.drawSelection(panX, panY, zoom);
+    this.drawTransformHandles(panX, panY, zoom);
     this.drawSlices(panX, panY, zoom);
   }
 
@@ -215,7 +217,7 @@ export class Viewport {
 
   private drawOnion(x: number, y: number, destW: number, destH: number): void {
     for (const layer of this.session.onionLayers()) {
-      this.paintBuffer(this.onionCanvas, layer.image);
+      this.paintBuffer(this.onionCanvas, tintBuffer(layer.image, layer.tint));
       this.ctx.save();
       this.ctx.globalAlpha = layer.alpha;
       this.ctx.imageSmoothingEnabled = false;
@@ -279,6 +281,47 @@ export class Viewport {
         if (right) this.ctx.fillRect(px + Math.max(0, zoom - band), py, Math.min(band, zoom), zoom);
       }
     }
+  }
+
+  private drawTransformHandles(panX: number, panY: number, zoom: number): void {
+    const mask = this.session.selection;
+    if (!mask) return;
+    const bounds = maskBounds(mask, this.session.doc.width, this.session.doc.height);
+    if (!bounds) return;
+    const x = Math.round(panX + bounds.minX * zoom);
+    const y = Math.round(panY + bounds.minY * zoom);
+    const w = Math.max(1, (bounds.maxX - bounds.minX + 1) * zoom);
+    const h = Math.max(1, (bounds.maxY - bounds.minY + 1) * zoom);
+    this.ctx.save();
+    this.ctx.strokeStyle = "#6ea8fe";
+    this.ctx.lineWidth = 1;
+    this.ctx.setLineDash([4, 3]);
+    this.ctx.strokeRect(x + 0.5, y + 0.5, w, h);
+    this.ctx.setLineDash([]);
+    const size = 8;
+    const corners = [
+      [x, y],
+      [x + w, y],
+      [x, y + h],
+      [x + w, y + h],
+    ];
+    this.ctx.fillStyle = "#ffffff";
+    this.ctx.strokeStyle = "#0d6efd";
+    for (const [cx, cy] of corners) {
+      this.ctx.fillRect(cx - size / 2, cy - size / 2, size, size);
+      this.ctx.strokeRect(cx - size / 2 + 0.5, cy - size / 2 + 0.5, size - 1, size - 1);
+    }
+    const rx = x + w / 2;
+    const ry = y - 18;
+    this.ctx.beginPath();
+    this.ctx.moveTo(x + w / 2, y);
+    this.ctx.lineTo(rx, ry);
+    this.ctx.stroke();
+    this.ctx.beginPath();
+    this.ctx.arc(rx, ry, 5, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.stroke();
+    this.ctx.restore();
   }
 
   private drawSlices(panX: number, panY: number, zoom: number): void {
@@ -476,4 +519,16 @@ export class Viewport {
     const coalesced = typeof event.getCoalescedEvents === "function" ? event.getCoalescedEvents() : [];
     return pointerSamples(coalesced, event);
   }
+}
+
+function tintBuffer(image: ImageBuffer, tint: Rgba): ImageBuffer {
+  const data = new Uint8ClampedArray(image.data);
+  for (let index = 0; index < data.length; index += 4) {
+    const alpha = data[index + 3] ?? 0;
+    if (alpha === 0) continue;
+    data[index] = Math.round(((data[index] ?? 0) * tint.r) / 255);
+    data[index + 1] = Math.round(((data[index + 1] ?? 0) * tint.g) / 255);
+    data[index + 2] = Math.round(((data[index + 2] ?? 0) * tint.b) / 255);
+  }
+  return { width: image.width, height: image.height, data };
 }

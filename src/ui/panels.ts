@@ -29,9 +29,16 @@ export function renderPalettes(hosts: HTMLElement[], colors: Rgba[], selected: n
   for (const host of hosts) host.innerHTML = html;
 }
 
-export function renderLayers(hosts: HTMLElement[], doc: SpriteDocument, activeLayerId: string): void {
+export function renderLayers(
+  hosts: HTMLElement[],
+  doc: SpriteDocument,
+  activeLayerId: string,
+  collapsedGroups: ReadonlySet<string> = new Set(),
+): void {
+  const hidden = hiddenByCollapse(doc, collapsedGroups);
   const html = `<div class="list-group">${[...doc.layers]
     .reverse()
+    .filter((layer) => !hidden.has(layer.id))
     .map((layer) => {
       const icon = layer.visible ? "fa-eye" : "fa-eye-slash";
       const label = layer.visible ? text.hideLayer : text.showLayer;
@@ -40,10 +47,32 @@ export function renderLayers(hosts: HTMLElement[], doc: SpriteDocument, activeLa
       const active = layer.id === activeLayerId ? " active" : "";
       const kind = layer.kind === "group" ? text.kindGroup : layer.kind === "reference" ? text.kindReference : layer.kind === "tilemap" ? text.kindTiles : "";
       const pad = layerDepth(doc, layer) * 0.75;
-      return `<div class="list-group-item d-flex align-items-center gap-2${active}" style="padding-left:${0.75 + pad}rem" data-action="select-layer" data-layer-id="${layer.id}"><button type="button" class="btn btn-sm btn-outline-secondary" data-action="toggle-layer" data-layer-id="${layer.id}" aria-label="${label}"><i class="fa-solid ${icon}" aria-hidden="true"></i></button><button type="button" class="btn btn-sm btn-outline-secondary" data-action="toggle-layer-lock" data-layer-id="${layer.id}" aria-label="${lockLabel}"><i class="fa-solid ${lockIcon}" aria-hidden="true"></i></button><input class="form-control form-control-sm layer-name" data-layer-name="${layer.id}" value="${escapeHtml(layer.name)}" aria-label="${text.renameLayer}" />${kind ? `<span class="small text-secondary">${kind}</span>` : ""}</div>`;
+      const collapse =
+        layer.kind === "group"
+          ? `<button type="button" class="btn btn-sm btn-outline-secondary" data-action="toggle-group" data-layer-id="${layer.id}" aria-label="${collapsedGroups.has(layer.id) ? text.expandGroup : text.collapseGroup}"><i class="fa-solid ${collapsedGroups.has(layer.id) ? "fa-chevron-right" : "fa-chevron-down"}" aria-hidden="true"></i></button>`
+          : "";
+      return `<div class="list-group-item d-flex align-items-center gap-2${active}" style="padding-left:${0.75 + pad}rem" data-action="select-layer" data-layer-id="${layer.id}">${collapse}<button type="button" class="btn btn-sm btn-outline-secondary" data-action="toggle-layer" data-layer-id="${layer.id}" aria-label="${label}"><i class="fa-solid ${icon}" aria-hidden="true"></i></button><button type="button" class="btn btn-sm btn-outline-secondary" data-action="toggle-layer-lock" data-layer-id="${layer.id}" aria-label="${lockLabel}"><i class="fa-solid ${lockIcon}" aria-hidden="true"></i></button><input class="form-control form-control-sm layer-name" data-layer-name="${layer.id}" value="${escapeHtml(layer.name)}" aria-label="${text.renameLayer}" />${kind ? `<span class="small text-secondary">${kind}</span>` : ""}</div>`;
     })
     .join("")}</div>`;
   for (const host of hosts) host.innerHTML = html;
+}
+
+function hiddenByCollapse(doc: SpriteDocument, collapsedGroups: ReadonlySet<string>): Set<string> {
+  const hidden = new Set<string>();
+  if (collapsedGroups.size === 0) return hidden;
+  for (const layer of doc.layers) {
+    let parentId = layer.parentId;
+    const seen = new Set<string>();
+    while (parentId && !seen.has(parentId)) {
+      seen.add(parentId);
+      if (collapsedGroups.has(parentId)) {
+        hidden.add(layer.id);
+        break;
+      }
+      parentId = doc.layers.find((item) => item.id === parentId)?.parentId ?? null;
+    }
+  }
+  return hidden;
 }
 
 function layerDepth(doc: SpriteDocument, layer: SpriteDocument["layers"][number]): number {
@@ -131,7 +160,10 @@ export function renderFrames(
 ): void {
   const { layerIds, frameIds } = celGridModel(doc);
   const header = `<div class="cel-grid-corner"></div>${frameIds
-    .map((_, index) => `<div class="cel-grid-frame-label small text-center${index === activeIndex ? " text-primary fw-semibold" : ""}">${index + 1}</div>`)
+    .map((frameId, index) => {
+      const duration = doc.frames.find((frame) => frame.id === frameId)?.durationMs ?? 100;
+      return `<div class="cel-grid-frame-label small text-center${index === activeIndex ? " text-primary fw-semibold" : ""}"><div>${index + 1}</div><div class="cel-duration-badge text-secondary">${duration}</div></div>`;
+    })
     .join("")}`;
   const rows = layerIds
     .map((layerId) => {

@@ -46,7 +46,8 @@ Teste na interface pública da costura. Um teste novo numa costura que não est�
 | Painel | `clampPanelLayout`, `timelineLimit`, `panelSnapTarget`, `optionGroupsFor`, `celGridModel` | teto, recolhimento, opções da ferramenta ativa e ordem da grade de cels | arraste real |
 | Atalho | `matchShortcut` | acorde para ação, inclusive copiar, recortar, colar, selecionar tudo, desfazer seleção e apagar | foco do input |
 | Idioma | `preferredLocale` | escolha salva, português e espanhol do navegador, inglês nos demais | `navigator` real |
-| Sessão | `EditorSession` | grade, tile, texto, RotSprite, seleção flutuante (lift/move/stamp), copiar, recortar, colar, apagar e selecionar tudo (inclusive entre abas), camada travada, undo | layout Bootstrap |
+| Sessão | `EditorSession` | grade, tile, texto, RotSprite, seleção flutuante (lift/move/stamp), morph da máscara, escala/rotação livres, copiar, recortar, colar, apagar e selecionar tudo (inclusive entre abas), camada travada, undo | layout Bootstrap |
+| Transformação livre | `scaleSelectionNearest` / `rotateSelectionNearest` / `hitTransformHandle` | escala nearest, rotação RotSprite do recorte e hit dos handles | gesto de ponteiro no viewport |
 | Atualização | `beginUpdate` | aviso, gravação e um único recarregamento | service worker e rede |
 | Diálogo | `askConfirm` / `askAlert` | resolve true/false e fecha; alerta resolve no OK | Bootstrap real no browser |
 | Interface | o app no browser | o fluxo que o usuário vê | lógica já coberta acima |

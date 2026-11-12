@@ -110,3 +110,79 @@ export function selectionMode(shift: boolean, alt: boolean, fallback: SelectMode
   if (alt) return "subtract";
   return fallback;
 }
+
+export type SelectionMorph = "expand" | "contract" | "invert" | "border";
+
+export function morphSelection(
+  mask: Uint8Array,
+  width: number,
+  height: number,
+  op: SelectionMorph,
+): Uint8Array | null {
+  if (mask.length !== width * height) return null;
+  if (op === "invert") {
+    const next = new Uint8Array(width * height);
+    let any = false;
+    for (let index = 0; index < mask.length; index += 1) {
+      if (mask[index] === 1) continue;
+      next[index] = 1;
+      any = true;
+    }
+    return any ? next : null;
+  }
+  if (op === "border") {
+    const next = new Uint8Array(width * height);
+    let any = false;
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const index = y * width + x;
+        if (mask[index] !== 1) continue;
+        if (!isInterior(mask, width, height, x, y)) {
+          next[index] = 1;
+          any = true;
+        }
+      }
+    }
+    return any ? next : null;
+  }
+  const grow = op === "expand";
+  const next = new Uint8Array(width * height);
+  let any = false;
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const on = mask[y * width + x] === 1;
+      const neighbor = hasNeighbor(mask, width, height, x, y);
+      const bit = grow ? on || neighbor : on && isInterior(mask, width, height, x, y);
+      if (!bit) continue;
+      next[y * width + x] = 1;
+      any = true;
+    }
+  }
+  return any ? next : null;
+}
+
+function hasNeighbor(mask: Uint8Array, width: number, height: number, x: number, y: number): boolean {
+  for (let dy = -1; dy <= 1; dy += 1) {
+    for (let dx = -1; dx <= 1; dx += 1) {
+      if (dx === 0 && dy === 0) continue;
+      const nx = x + dx;
+      const ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+      if (mask[ny * width + nx] === 1) return true;
+    }
+  }
+  return false;
+}
+
+function isInterior(mask: Uint8Array, width: number, height: number, x: number, y: number): boolean {
+  for (let dy = -1; dy <= 1; dy += 1) {
+    for (let dx = -1; dx <= 1; dx += 1) {
+      if (dx === 0 && dy === 0) continue;
+      const nx = x + dx;
+      const ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= width || ny >= height) return false;
+      if (mask[ny * width + nx] !== 1) return false;
+    }
+  }
+  return true;
+}
