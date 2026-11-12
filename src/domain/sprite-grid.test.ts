@@ -14,7 +14,6 @@ describe("celGridModel", () => {
       opacity: 255,
       blendMode: "normal",
       parentId: null,
-      tilesetId: null,
     });
     doc.frames.push({ id: "frame-2", durationMs: 100 });
     const grid = celGridModel(doc);

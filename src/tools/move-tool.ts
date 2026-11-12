@@ -3,9 +3,7 @@ import { canPaint, type Tool, type ToolContext } from "./tool";
 export class MoveTool implements Tool {
   readonly id = "move" as const;
   readonly cursor = "move";
-  private origin: { x: number; y: number } | null = null;
   private last: { x: number; y: number } | null = null;
-  private active: ToolContext | null = null;
 
   onDown(ctx: ToolContext): void {
     if (!canPaint(ctx.session)) return;
@@ -14,8 +12,6 @@ export class MoveTool implements Tool {
     if (!ctx.session.floating) {
       if (!ctx.session.liftSelection(ctx.alt)) return;
     }
-    this.active = ctx;
-    this.origin = { x: ctx.spriteX, y: ctx.spriteY };
     this.last = { x: ctx.spriteX, y: ctx.spriteY };
     ctx.session.pausePlayback();
   }
@@ -38,9 +34,7 @@ export class MoveTool implements Tool {
   }
 
   private clear(): void {
-    this.origin = null;
     this.last = null;
-    this.active = null;
   }
 }
 
