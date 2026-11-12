@@ -288,7 +288,6 @@ body {
   gap: 0.25rem;
   align-items: center;
   width: max-content;
-  min-width: 100%;
 }
 
 .cel-grid-corner {

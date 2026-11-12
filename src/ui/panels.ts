@@ -179,7 +179,7 @@ export function renderFrames(
     })
     .join("");
   const columns = Math.max(1, frameIds.length + 1);
-  const html = `<div class="cel-grid" style="grid-template-columns:minmax(4.5rem,7rem) repeat(${Math.max(1, frameIds.length)}, auto)">${header}${rows}</div>`;
+  const html = `<div class="cel-grid" style="grid-template-columns:minmax(4.5rem,7rem) repeat(${Math.max(1, frameIds.length)}, max-content)">${header}${rows}</div>`;
   for (const host of hosts) {
     host.innerHTML = html;
     host.style.setProperty("--cel-columns", String(columns));
